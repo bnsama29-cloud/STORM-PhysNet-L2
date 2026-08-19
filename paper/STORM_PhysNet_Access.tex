@@ -485,10 +485,10 @@ Transformer matched ($d{=}128$, 2 layers) & $1.19\times10^{6}$ \\
 \end{tabular}
 \end{table}
 
-Table~\ref{tab:params} shows that the default Transformer is wider/deeper than STORM. Default Transformer is not capacity-matched to STORM; matched control exceeds STORM in encoder size by design.
-in total parameter count, while the matched control is deliberately larger than STORM
-in encoder capacity. We therefore never interpret default-Transformer gaps as pure
-evidence for the delay/gate modules alone.
+Table~\ref{tab:params} shows that the default Transformer is not
+capacity-matched to STORM. The architecture-matched control is
+deliberately larger in encoder width and therefore in total parameter
+count.\footnote{SDG has $3.4336\times10^{5}$ parameters (versus $3.4339\times10^{5}$ for STORM-Bz).}
 
 
 \subsection{Alternative Gate Formulations}
@@ -636,7 +636,7 @@ Horizon & Zero-shot & Fine-tuned & Gain \\
 The controlled comparison supports a layered reading rather than a single
 ``winner'' architecture. At 1\,h, STORM-Bz improves reliability relative to the architecture-matched Transformer, especially against persistence. Controlled ablations that remove the delay, the physics loss, or the gate do not by themselves erase that short-horizon PE\(_{\mathrm{clim}}\) edge. We therefore treat the gain as a property of the full trained system rather than as proof that any single module is necessary.
 
-As detailed in Section~\ref{sec:results}, the ablations together indicate that the short-horizon gain is produced by the overall training protocol rather than by any single runtime module. The delay and gate act as structured inductive biases during training; once the model is trained, removing either module at inference does not erase the 1\,h PE\(_{\mathrm{clim}}\) edge over the Transformer. STORM-PhysNet should therefore be understood primarily as a carefully engineered training and multi-horizon recipe that includes interpretable physics-inspired components. To test whether the original upper bound of \(1.5\,\mathrm{h}\) was limiting performance, we retrained STORM with wider delay constraints (\(2.0, 2.5, 3.0, 3.5,\) and \(4.0\,\mathrm{h}\)) across fifteen seeds (sixteen seeds for the \(2.0\,\mathrm{h}\) bound). Mean PE$_{1\mathrm{h}}$ remained in the narrow range \(0.9859\)--\(0.9862\) and PE$_{6\mathrm{h}}$ remained in the range \(0.900\)--\(0.902\) for all bounds (see Fig.~\ref{fig:wider_delay}). The original \([0.5, 1.5]\,\mathrm{h}\) constraint is therefore not a performance bottleneck.
+As detailed in Section~\ref{sec:results}, the ablations together indicate that the short-horizon gain is produced by the overall training protocol rather than by any single runtime module. The delay and gate act as structured inductive biases during training; once the model is trained, removing either module at inference does not erase the 1\,h PE\(_{\mathrm{clim}}\) edge over the Transformer. STORM-PhysNet should therefore be understood primarily as a carefully engineered training and multi-horizon recipe that includes interpretable physics-inspired components. Retraining with wider delay upper bounds ($2.0$--$4.0$\,h) left PE$_{1\mathrm{h}}$ and PE$_{6\mathrm{h}}$ unchanged within seed scatter (Fig.~\ref{fig:wider_delay}). The original \([0.5, 1.5]\,\mathrm{h}\) constraint is therefore not a performance bottleneck.
 
 \begin{figure*}[!t]
 \centering
