@@ -1,0 +1,9 @@
+torch
+numpy
+pandas
+pyyaml
+cdflib
+matplotlib
+scikit-learn
+scipy
+tensorboard

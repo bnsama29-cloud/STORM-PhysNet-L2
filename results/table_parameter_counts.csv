@@ -1,0 +1,11 @@
+name,n_params
+lstm,54723
+storm_bz,343391
+storm_cathode,341360
+storm_cathode_spec,350883
+storm_no_delay,343391
+storm_no_gate,343391
+storm_no_physics,343391
+storm_radiotrophic,343360
+transformer,844803
+transformer_matched,1188739

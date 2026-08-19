@@ -1,0 +1,37 @@
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Temporary Folders & Dumps
+drive/
+dashboard/
+epoch_metrics/
+temp_ieee_final/
+temp_reviewer_package/
+test_work/
+old/
+dump_eval.txt
+*.log
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.zip
+kaggle_outputs/
+ieee_paper/

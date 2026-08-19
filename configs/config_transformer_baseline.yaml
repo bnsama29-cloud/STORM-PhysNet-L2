@@ -1,0 +1,65 @@
+data:
+  batch_size: 64
+  forecast_horizons:
+  - 1.0
+  - 6.0
+  - 12.0
+  goes_cdf_dir: datasets/goes
+  grasp_cdf_dir: datasets/grasp
+  num_workers: 2
+  sequence_length: 72
+  synthetic:
+    grasp_longitude_offset: 0.15
+    seed: 42
+    storm_frequency: 0.004
+    years: 11
+  use_real_data: true
+  wind_cdf_dir: datasets/omni
+loss:
+  lambda_bz_response: 0.01
+  lambda_delay: 0.001
+  lambda_monotonicity: 0.03
+  lambda_smooth: 0.03
+  lambda_epsilon: 0.02
+model:
+  backbone: transformer
+  gate_type: bz
+  use_spectral_head: false
+  bz_gate:
+    enabled: false
+  d_model: 64
+  delay:
+    enabled: false
+  heads:
+    hidden_dim: 64
+  name: Transformer-Baseline
+  ssm:
+    d_state: 64
+    dropout: 0.1
+    n_layers: 2
+  transformer:
+    d_ff: 256
+    dropout: 0.1
+    n_heads: 4
+    n_layers: 3
+
+training:
+  batch_size: 64
+  checkpoint_dir: checkpoints
+  early_stopping_patience: 12
+  epochs: 40
+  gradient_clip: 1.0
+  learning_rate: 0.0003
+  log_dir: logs
+  seed: 42
+  storm_weight: 12.0
+  warmup_epochs: 5
+  weight_decay: 1.0e-05
+transfer:
+  enabled: false
+  freeze_encoder: true
+  grasp_checkpoint_dir: checkpoints/grasp
+  grasp_epochs: 20
+  grasp_lr: 0.0001
+ensemble:
+  n_members: 5
