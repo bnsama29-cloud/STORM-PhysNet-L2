@@ -1,6 +1,6 @@
 # Notebooks
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/bnsama29-cloud/STORM-PhysNet/blob/main/notebooks/STORM_PhysNet_Master.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/bnsama29-cloud/STORM-PhysNet-L2/blob/main/notebooks/STORM_PhysNet_Master.ipynb)
 
 This directory contains the main interactive reproduction notebook for the STORM-PhysNet repository.
 
