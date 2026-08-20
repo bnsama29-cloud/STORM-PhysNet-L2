@@ -1,4 +1,4 @@
-﻿# Notebooks
+# Notebooks
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/bnsama29-cloud/STORM-PhysNet/blob/main/notebooks/STORM_PhysNet_Master.ipynb)
 
