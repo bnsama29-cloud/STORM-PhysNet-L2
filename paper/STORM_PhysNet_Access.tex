@@ -388,7 +388,7 @@ No-Delay & 0.987 & 0.902 & 0.855 & 0.809 & +0.36 \\
 No-Physics & 0.986 & 0.899 & 0.850 & 0.807 & +0.31 \\
 No-Gate & 0.986 & 0.900 & 0.856 & 0.819 & +0.32 \\
 \midrule
-STORM-Bz bagged & 0.987 & \textbf{0.910} & \textbf{0.870} & 0.836 & --- \\
+STORM-Bz bagged & \textbf{0.987} & \textbf{0.910} & \textbf{0.870} & 0.836 & --- \\
 TF matched bagged & 0.984 & 0.908 & 0.861 & 0.831 & --- \\
 \bottomrule
 \end{tabular}
@@ -488,11 +488,9 @@ deliberately larger in encoder width and therefore in total parameter
 count.\footnote{SDG has $3.4336\times10^{5}$ parameters (versus $3.4339\times10^{5}$ for STORM-Bz).}
 The architecture-matched Transformer copies STORM's $d_{\mathrm{model}}$,
 layer count, and head count. It does not copy the feed-forward width
-($d_{\mathrm{ff}}=256$ in STORM versus PyTorch's default
-$\mathrm{dim\_feedforward}=2048$). Neither baseline uses STORM's
 (\(d_{\mathrm{ff}}=256\) in STORM versus PyTorch's default
-\(\mathrm{dim\_feedforward}=2048\)). Neither baseline uses STORM's
-residual-over-persistence heads. An FFN-matched Transformer (\(d_{\mathrm{model}}=128\), two layers,
+\(\mathrm{dim\_feedforward}=2048\)).
+Neither baseline uses STORM's residual-over-persistence heads. An FFN-matched Transformer (\(d_{\mathrm{model}}=128\), two layers,
 four heads, \(d_{\mathrm{ff}}=256\)) scores PE\(_{1\mathrm{h}}=0.976\pm0.002\),
 PE\(_{6\mathrm{h}}=0.902\pm0.003\), PE\(_{12\mathrm{h}}=0.856\pm0.005\).
 The same encoder with a residual-over-persistence head reaches
@@ -613,8 +611,8 @@ illustrative and are not used for model selection.}
 \subsection{GRASP Transfer}
 On GSAT-19 GRASP (fifteen seeds), zero-shot GOES models already achieve
 short-horizon PE near \(0.96\), but 6\,h and 12\,h PE fall to
-\(0.740\) and \(0.567\). Fine-tuning on GRASP (freezing the Transformer
-encoder and updating only the forecast heads) raises 6\,h PE from 0.740
+\(0.740\) and \(0.567\). Fine-tuning on GRASP (freezing the delay module, \(B_z\) gate, and Transformer encoder
+and updating only the forecast heads) raises 6\,h PE from 0.740
 to 0.841 (paired \textit{t}-test across fifteen seeds,
 \(p = 3.55\times10^{-12}\), Cohen's \(d = 5.60\))
 and 12\,h PE from 0.567 to 0.762
@@ -726,19 +724,20 @@ Alternative gates (RDG, RDG-S, SDG) remain within seed noise of STORM-Bz and are
 STORM-PhysNet is a reproducible multi-horizon baseline on GOES with a documented
 transfer path toward GSAT-19 GRASP. Relative to the architecture-matched Transformer, the clearest single-model gain is short-horizon
 reliability (PE$_{1\mathrm{h}}$ and PE$_{\mathrm{pers}}$).
-Among systems evaluated here, seed-bagged STORM-Bz (and the RDG/SDG probes)
-reaches the strongest multi-horizon PE
-(PE$_{6\mathrm{h}}=0.910$, PE$_{12\mathrm{h}}=0.870$).
+Among systems evaluated here, seed-bagged STORM-Bz reaches the strongest multi-horizon PE
+(\(\mathrm{PE}_{6\mathrm{h}}=0.910\), \(\mathrm{PE}_{12\mathrm{h}}=0.870\));
+the RDG/SDG single-model probes remain within seed noise of STORM-Bz.
 An architecture-matched bagged Transformer remains competitive
 (\(0.908\) / \(0.861\)) but does not dominate under this full retrain.
 Input-noise and missing-channel checks, together with GRASP fine-tuning
 gains at 6--12\,h, support operational motivation beyond a pure leaderboard PE
 number; for instance, the architecture-matched baseline remains near persistence at 1\,h (PE$_{\mathrm{pers}}\approx-0.01$), whereas STORM-Bz is clearly positive (PE$_{\mathrm{pers}}\approx+0.31$).
-\begin{figure}[t]
-\centerline{\includegraphics[width=\columnwidth]{figures/noise_robustness.png}}
+\begin{figure*}[t]
+\centering
+\includegraphics[width=7.16in]{figures/noise_robustness.png}
 \caption{Prediction efficiency (1\,h and 6\,h) under synthetic Gaussian noise (\(\sigma\)) injected into standardized solar-wind inputs.}
 \label{fig:noise}
-\end{figure}
+\end{figure*}
 Under synthetic input noise (Fig.~\ref{fig:noise}), the architecture-matched Transformer's 6\,h PE drops to \(0.825\pm 0.010\) at \(\sigma=1.0\), while STORM maintains \(0.848\pm 0.008\). These noise-probe values are not a re-statement of Table~\ref{tab:main}; \(\sigma=0\) under the probe protocol is not the official seed-mean PE. Horizon-restricted physics losses did not improve PE in a fifteen-seed
 ablation.
 \section*{Data Availability}
@@ -746,7 +745,7 @@ The code, configuration files, trained checkpoints, evaluation scripts,
 result CSVs, paper figures, and the chronological split protocol are
 available at
 \url{https://github.com/bnsama29-cloud/STORM-PhysNet-L2}. Note that the GRASP fine-tuning run was executed 
-externally, and its frozen outputs are provided in the repository.\footnote{The official tables use the released chronological cut (63\,394 / 7\,924 / 15\,850 hours). The preprocessor default 70/15/15 cut is not the cut used for those numbers.}
+externally, and its frozen outputs are provided in the repository.
 The GOES-15 EPEAD dataset is publicly available from NOAA NCEI
 (\url{https://www.ngdc.noaa.gov/stp/satellite/goes/}).
 OMNI is available via NASA OMNIWeb
