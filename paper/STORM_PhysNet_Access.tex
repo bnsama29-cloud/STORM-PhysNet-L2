@@ -329,12 +329,11 @@ defined by Dst \(\le -50\,\mathrm{nT}\) (118 of 1781 test hours, 6.6\%).
 \begin{figure*}[!t]
 \centering
 \includegraphics[width=0.95\textwidth]{figures/fig_system_architecture.png}
-\caption{STORM-PhysNet: OMNI solar wind is delay-aligned ($\tau\in[0.5,1.5]\,\mathrm{h}$)
-and concatenated with GOES log-flux ($T=72\,\mathrm{h}$), projected to
-$d_{\mathrm{model}}=128$, and encoded by a 2-layer, 4-head Transformer.
-A $B_z$-conditioned gate modulates the final representation; three residual heads
-with shared horizon embeddings ($d_e=16$) predict corrections over persistence
-at 1\,h, 6\,h, and 12\,h.}
+\caption{STORM-PhysNet. OMNI solar wind is delay-aligned ($\tau\in[0.5,1.5]$~h) and
+concatenated with GOES log-flux ($T=72$~h), projected to $d_{\mathrm{model}}=128$,
+and encoded by a 2-layer, 4-head Transformer. A $B_z$-conditioned gate modulates
+the last hidden state; three residual heads add a persistence skip at 1~h, 6~h,
+and 12~h.}
 \label{fig:arch}
 \end{figure*}
 
