@@ -19,3 +19,8 @@ This directory strictly contains the final, aggregated evaluation tables and met
 ### GRASP Domain Transfer
 - `table_grasp_storm_bz.csv` - Formatted GRASP domain transfer table export.
 - `grasp_summary.csv` - Summary of the zero-shot vs fine-tuning domain transfer performance.
+
+### Noise & Matched-Capacity Checks
+- `tf_ffn256_summary.csv` — FFN-matched Transformer and residual-head control
+- `noise_robustness.csv` — Gaussian input-noise and channel-dropout probe
+
