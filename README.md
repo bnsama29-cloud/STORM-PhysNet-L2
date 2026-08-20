@@ -4,7 +4,7 @@ Official implementation of the **IEEE Access** paper:
 
 **STORM-PhysNet: A Multi-Horizon Transformer for Geostationary Relativistic Electron Flux Forecasting with Physics-Inspired Components and Cross-Satellite Transfer**
 
-Multi-horizon log-flux forecasts at **1 h / 6 h / 12 h** on hourly GOESâ€“OMNI, with transfer to GSAT-19 GRASP.
+Multi-horizon log-flux forecasts at **1 h / 6 h / 12 h** on hourly GOES–OMNI, with transfer to GSAT-19 GRASP.
 
 ## What this repository includes
 
@@ -24,7 +24,7 @@ Multi-horizon log-flux forecasts at **1 h / 6 h / 12 h** on hourly GOESâ€“O
 | STORM-Bz bagged | **0.987** | **0.910** | **0.870** |
 | TF matched bagged | 0.984 | 0.908 | 0.861 |
 
-GRASP fine-tune: 6 h PE 0.740 â†’ 0.841; 12 h 0.567 â†’ 0.762.
+GRASP fine-tune: 6 h PE 0.740 → 0.841; 12 h 0.567 → 0.762.
 
 Primary comparison is the architecture-matched Transformer. Module ablations show the short-horizon gain is a training-package effect.
 
@@ -52,4 +52,4 @@ Headline numbers load from `results/*.csv`. Test PE is not used for model select
 
 ## License
 
-MIT for code. Follow NOAA / NASA / ISSDC terms for GOES, OMNI, and GRASP.
+MIT for code. Follow NOAA / NASA / ISSDC terms for GOES, OMNI, and GRASP data.
