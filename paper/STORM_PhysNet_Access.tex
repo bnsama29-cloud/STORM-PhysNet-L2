@@ -279,7 +279,9 @@ Autoregressive target history & log-flux (separate input stream) \\ \bottomrule
 \subsection{Chronological Splits}
 Splits are purely chronological: the earliest 70\% of the merged GOES--OMNI series
 for training, the next 15\% for validation, and the final 15\% for held-out
-testing. No shuffling is applied.
+testing. No shuffling is applied.\footnote{The official tables use the released chronological cut
+(63\,394 / 7\,924 / 15\,850 hours). The preprocessor default 70/15/15
+cut is not the cut used for those numbers.}
 
 \subsection{Forecast Targets and Horizons}
 The model simultaneously predicts log-flux at three lead times:
