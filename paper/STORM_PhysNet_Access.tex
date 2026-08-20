@@ -731,7 +731,13 @@ An architecture-matched bagged Transformer remains competitive
 (\(0.908\) / \(0.861\)) but does not dominate under this full retrain.
 Input-noise and missing-channel checks, together with GRASP fine-tuning
 gains at 6--12\,h, support operational motivation beyond a pure leaderboard PE
-number; for instance, the architecture-matched baseline remains near persistence at 1\,h (PE$_{\mathrm{pers}}\approx-0.01$), whereas STORM-Bz is clearly positive (PE$_{\mathrm{pers}}\approx+0.31$). Under synthetic input noise (\(\sigma=1.0\)), the architecture-matched Transformer's 6\,h PE drops to \(0.825\pm 0.010\), while STORM maintains \(0.848\pm 0.008\); we do not treat this robustness probe as a primary table. Horizon-restricted physics losses did not improve PE in a fifteen-seed
+number; for instance, the architecture-matched baseline remains near persistence at 1\,h (PE$_{\mathrm{pers}}\approx-0.01$), whereas STORM-Bz is clearly positive (PE$_{\mathrm{pers}}\approx+0.31$).
+\begin{figure}[t]
+\centerline{\includegraphics[width=\columnwidth]{figures/noise_robustness.png}}
+\caption{Prediction efficiency (1\,h and 6\,h) under synthetic Gaussian noise (\(\sigma\)) injected into standardized solar-wind inputs.}
+\label{fig:noise}
+\end{figure}
+Under synthetic input noise (Fig.~\ref{fig:noise}), the architecture-matched Transformer's 6\,h PE drops to \(0.825\pm 0.010\) at \(\sigma=1.0\), while STORM maintains \(0.848\pm 0.008\). These noise-probe values are not a re-statement of Table~\ref{tab:main}; \(\sigma=0\) under the probe protocol is not the official seed-mean PE. Horizon-restricted physics losses did not improve PE in a fifteen-seed
 ablation.
 \section*{Data Availability}
 The code, configuration files, trained checkpoints, evaluation scripts,

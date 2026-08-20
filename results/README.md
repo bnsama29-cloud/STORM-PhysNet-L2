@@ -24,3 +24,6 @@ This directory strictly contains the final, aggregated evaluation tables and met
 - `tf_ffn256_summary.csv` — FFN-matched Transformer and residual-head control
 - `noise_robustness.csv` — Gaussian input-noise and channel-dropout probe
 
+
+Note: sigma=0 in noise_robustness.csv is not a replacement for Table 1 (table_main_means.csv), as the probe uses a different fixed subset evaluation.
+
