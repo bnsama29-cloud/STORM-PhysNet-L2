@@ -1,4 +1,4 @@
-﻿# STORM-PhysNet
+# STORM-PhysNet
 
 Official implementation of the **IEEE Access** paper:
 
@@ -11,7 +11,8 @@ Multi-horizon log-flux forecasts at **1 h / 6 h / 12 h** on hourly GOESâ€“O
 - Main systems: LSTM, default Transformer, architecture-matched Transformer, STORM-Bz
 - Ablations: No-Delay, No-Physics, No-Gate
 - Access-only extras: alternative gates (RDG / RDG-S / SDG), wider delay bounds, interpretability figures, bagged controls
-- Official result CSVs in `results/` and checkpoints in `checkpoints/`
+- Official result CSVs in `results/` and checkpoints in `checkpoints/`, including FFN models.
+
 
 ## Key results (fifteen seeds)
 

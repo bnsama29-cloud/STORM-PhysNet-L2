@@ -490,12 +490,14 @@ The architecture-matched Transformer copies STORM's $d_{\mathrm{model}}$,
 layer count, and head count. It does not copy the feed-forward width
 ($d_{\mathrm{ff}}=256$ in STORM versus PyTorch's default
 $\mathrm{dim\_feedforward}=2048$). Neither baseline uses STORM's
-residual-over-persistence heads. An FFN-matched Transformer ($d_{\mathrm{model}}=128$, two layers,
-four heads, $d_{\mathrm{ff}}=256$) scores PE$_{1\mathrm{h}}=0.976\pm0.002$,
-PE$_{6\mathrm{h}}=0.902\pm0.003$, PE$_{12\mathrm{h}}=0.856\pm0.005$.
+(\(d_{\mathrm{ff}}=256\) in STORM versus PyTorch's default
+\(\mathrm{dim\_feedforward}=2048\)). Neither baseline uses STORM's
+residual-over-persistence heads. An FFN-matched Transformer (\(d_{\mathrm{model}}=128\), two layers,
+four heads, \(d_{\mathrm{ff}}=256\)) scores PE\(_{1\mathrm{h}}=0.976\pm0.002\),
+PE\(_{6\mathrm{h}}=0.902\pm0.003\), PE\(_{12\mathrm{h}}=0.856\pm0.005\).
 The same encoder with a residual-over-persistence head reaches
-$0.987\pm0.001$ / $0.909\pm0.005$ / $0.865\pm0.005$
-(results/tf\_ffn256\_summary.csv). The 1\,h climatology edge therefore
+\(0.987\pm0.001\) / \(0.909\pm0.005\) / \(0.865\pm0.005\)
+(the released evaluation CSV). The 1\,h climatology edge therefore
 survives a width-matched FFN; closing the 1\,h gap requires the
 persistence skip, not the delay or gate.
 
