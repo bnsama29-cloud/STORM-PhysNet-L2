@@ -486,11 +486,11 @@ Table~\ref{tab:params} shows that the default Transformer is not
 capacity-matched to STORM. The architecture-matched control is
 deliberately larger in encoder width and therefore in total parameter
 count.\footnote{SDG has $3.4336\times10^{5}$ parameters (versus $3.4339\times10^{5}$ for STORM-Bz).}
-The matched control copies STORM's $d_{\mathrm{model}}$, layer count,
-and head count only. It does not copy the feed-forward width:
-PyTorch's default $\mathrm{dim\_feedforward}=2048$ is used, versus
-$d_{\mathrm{ff}}=256$ in STORM. That is why the matched model has
-$\approx 1.19\times 10^{6}$ parameters and STORM $\approx 3.43\times 10^{5}$.
+The architecture-matched Transformer copies STORM's $d_{\mathrm{model}}$,
+layer count, and head count. It does not copy the feed-forward width
+($d_{\mathrm{ff}}=256$ in STORM versus PyTorch's default
+$\mathrm{dim\_feedforward}=2048$). Neither baseline uses STORM's
+residual-over-persistence heads.
 
 
 \subsection{Alternative Gate Formulations}
@@ -709,9 +709,6 @@ The default Transformer baseline is not architecture-matched to STORM; the match
 control (\(d_{\mathrm{model}}=128\), two layers) shows that encoder width/depth and bagging
 account for much of the multi-horizon PE movement, so we still do not attribute
 single-model gaps solely to the delay or gate modules.
-Neither Transformer baseline uses STORM's residual-over-persistence
-heads. The 1\,h PE$_{\mathrm{pers}}$ gap is consistent with that skip,
-not only with the delay or gate.
 
 Alternative gates (RDG, RDG-S, SDG) remain within seed noise of STORM-Bz and are reported as sensitivity checks, not primary systems.
 
@@ -736,7 +733,7 @@ The code, configuration files, trained checkpoints, evaluation scripts,
 result CSVs, paper figures, and the chronological split protocol are
 available at
 \url{https://github.com/bnsama29-cloud/STORM-PhysNet-L2}. Note that the GRASP fine-tuning run was executed 
-externally, and its frozen outputs are provided in the repository.
+externally, and its frozen outputs are provided in the repository.\footnote{The official tables use the released chronological cut (63\,394 / 7\,924 / 15\,850 hours). The preprocessor default 70/15/15 cut is not the cut used for those numbers.}
 The GOES-15 EPEAD dataset is publicly available from NOAA NCEI
 (\url{https://www.ngdc.noaa.gov/stp/satellite/goes/}).
 OMNI is available via NASA OMNIWeb

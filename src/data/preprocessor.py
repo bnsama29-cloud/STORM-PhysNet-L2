@@ -296,10 +296,3 @@ class Preprocessor:
 
         return train, val, test
 
-    def inverse_scale_flux(self, scaled_flux: np.ndarray) -> np.ndarray:
-        """Inverse transform log_flux predictions back to original scale."""
-        # log_flux is the last feature in ALL_FEATURES (or use scaler directly)
-        dummy = np.zeros((len(scaled_flux), len(self.scaler.mean_)))
-        flux_idx = ALL_FEATURES.index("log_flux") if "log_flux" in ALL_FEATURES else 0
-        dummy[:, flux_idx] = scaled_flux
-        return self.scaler.inverse_transform(dummy)[:, flux_idx]
