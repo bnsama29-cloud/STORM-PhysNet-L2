@@ -62,4 +62,4 @@ transfer:
   grasp_epochs: 20
   grasp_lr: 0.0001
 ensemble:
-  n_members: 5
+  n_members: 5   # unused deep-ensemble helper. Table I bagging = seeds 42–56

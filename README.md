@@ -77,6 +77,9 @@ Same layout as the conference repo. Access-only usage:
 
 ## Key results (fifteen seeds)
 
+Table I bagging is the mean of 15 independently trained checkpoints
+(seeds 42–56), not the unused 5-member STORMPhysNetEnsemble.
+
 | System | PE_1h | PE_6h | PE_12h |
 |--------|-------|-------|--------|
 | Transformer (default) | 0.978 | 0.895 | 0.845 |

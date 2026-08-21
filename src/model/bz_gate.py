@@ -74,6 +74,7 @@ class BzPhysicsGate(nn.Module):
         nn.init.xavier_uniform_(self.gate_net[2].weight)
         nn.init.constant_(self.gate_net[2].bias, -math.log(3))  # sigmoid → 0.25
 
+    # bz_threshold is unused. Southward = relu(-Bz) on *standardized* Bz.
     def forward(
         self,
         encoder_output: torch.Tensor,   # [B, d_model]
