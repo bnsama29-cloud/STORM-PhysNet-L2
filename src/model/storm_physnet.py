@@ -72,7 +72,7 @@ class STORMPhysNet(nn.Module):
         seq_len:              int   = 72,
         d_model:              int   = 128,
         n_heads:              int   = 4,
-        n_transformer_layers: int   = 3,
+        n_transformer_layers: int   = 2,
         n_ssm_layers:         int   = 2,
         d_state:              int   = 64,
         d_ff:                 int   = 256,
