@@ -103,7 +103,7 @@ fluence rather than hourly log-flux; a direct PE comparison would be
 misleading~\cite{b5}.
 The subsequent generation of feed-forward neural networks demonstrated that
 nonlinear mappings from solar wind and IMF parameters could improve upon these
-linear baselines~\cite{b7,b8}. LSTM-based architectures then raised the bar
+linear baselines~\cite{b7,b8}. LSTM- and MLP-based architectures then raised the bar
 further by explicitly capturing multi-day temporal dependencies in the
 solar wind driving~\cite{b9,b10,b11,b12}. More recently, Transformer and
 attention-based models---originally developed for natural language
@@ -122,7 +122,7 @@ chronological splits. Third, nearly all published work focuses on GOES satellite
 at American/European longitudes; the performance of transfer strategies for
 Indian-longitude GEO assets such as ISRO's GSAT-19---which carries the
 Geostationary Radiation Alert and Monitoring System (GRASP) instrument---has not
-been systematically characterized.
+been systematically characterized. A recent exception is Zhao et al.~\cite{b29}, who characterized a 15-seed transfer from FY-4A to GOES-15, but that is a different instrument pair than GOES\(\rightarrow\)GRASP.
 
 STORM-PhysNet is designed around these three gaps.
 
@@ -172,7 +172,7 @@ Early neural network models established that solar wind speed, IMF \(B_z\), and
 geomagnetic indices carry predictive signal for GEO electrons~\cite{b7}. Wei et
 al.\ demonstrated that a deep network on multi-day solar wind histories achieves
 strong daily PE~\cite{b8}. Son et al.\ pushed to 72-hour multi-step hourly
-forecasts with LSTM~\cite{b9}. Zhang et al.\ combined empirical mode decomposition
+forecasts with MLP~\cite{b9}. Zhang et al.\ combined empirical mode decomposition
 with LSTM~\cite{b10}. Simms et al.\ focused on classification of enhancement
 events~\cite{b11}.
 
@@ -316,8 +316,7 @@ GRASP aboard GSAT-19 provides GEO radiation measurements at Indian longitude
 (\(\approx\)82\(^\circ\)E). We use the available record covering approximately
 July 2017 to September 2018---an $\approx$14--15 month interval in the declining phase of Solar
 Cycle 24. After alignment, GRASP supplies fewer co-located input channels than the
-GOES pipeline; this feature mismatch is a proximate cause of zero-shot failure and
-motivates input-projection adaptation. Storm windows on the GRASP test set are
+GOES pipeline; this feature mismatch is a proximate reason zero-shot transfer fails and motivates zero-padding, freezing the encoder, and fine-tuning the heads. Storm windows on the GRASP test set are
 defined by Dst \(\le -50\,\mathrm{nT}\) (118 of 1781 test hours, 6.6\%).
 
 \section{Method: STORM-PhysNet}
@@ -490,8 +489,6 @@ The architecture-matched Transformer copies STORM's $d_{\mathrm{model}}$,
 layer count, and head count. It does not copy the feed-forward width
 ($d_{\mathrm{ff}}=256$ in STORM versus PyTorch's default
 $\mathrm{dim\_feedforward}=2048$). Neither baseline uses STORM's
-(\(d_{\mathrm{ff}}=256\) in STORM versus PyTorch's default
-\(\mathrm{dim\_feedforward}=2048\)). Neither baseline uses STORM's
 residual-over-persistence heads. An FFN-matched Transformer (\(d_{\mathrm{model}}=128\), two layers,
 four heads, \(d_{\mathrm{ff}}=256\)) scores PE\(_{1\mathrm{h}}=0.976\pm0.002\),
 PE\(_{6\mathrm{h}}=0.902\pm0.003\), PE\(_{12\mathrm{h}}=0.856\pm0.005\).
@@ -785,8 +782,7 @@ the acceleration and precipitation of radiation belt electrons,''
 \emph{J. Atmos. Sol.-Terr. Phys.}, vol.~69, pp.~378--386, 2007.
 
 \bibitem{b7}
-A.~G. Ling et al., ``Identifying solar wind drivers of radiation belt
-responses,'' \emph{Space Weather}, vol.~8, no.~10, 2010.
+A.~G. Ling et al., ``A neural network-based geosynchronous relativistic electron flux forecasting model,'' \emph{Space Weather}, vol.~8, S09003, 2010.
 
 \bibitem{b8}
 L.~Wei et al., ``Quantitative prediction of high-energy electron integral
@@ -820,7 +816,7 @@ A.~Vaswani et al., ``Attention is all you need,'' in \emph{Proc.\ NeurIPS},
 \bibitem{b14}
 W.~Tan et al., ``Comparative analysis of TPA-LSTM and Transformer models
 for forecasting GEO radiation belt electron fluxes,'' \emph{Space Weather},
-vol.~22, e2023SW003714, 2024.
+vol.~22, e2024SW004119, 2024.
 
 \bibitem{b15}
 X.~Sun et al., ``A modeling study of \(\ge2\) MeV electron fluxes in GEO
@@ -830,7 +826,7 @@ at different prediction time scales based on LSTM and transformer networks,''
 \bibitem{b16}
 X.~Sun et al., ``Enhancing \(\ge2\) MeV electron fluence predictions in GEO
 through three deep learning strategies,'' \emph{Space Weather}, vol.~23,
-e2024SW003975, 2025.
+e2025SW004519, 2025.
 
 \bibitem{b17}
 G.~D. Reeves et al., ``Acceleration and loss of relativistic electrons
@@ -859,7 +855,7 @@ Nowcasting and forecasting,'' \emph{Space Weather}, vol.~17, pp.~1166--1207,
 \bibitem{b22}
 S.~K. Morley et al., ``Evaluating the performance of radiation belt models:
 Metrics, baselines, and statistics,'' \emph{Space Weather}, vol.~16,
-pp.~1521--1548, 2018.
+pp.~1521--1548, 2018, doi:10.1029/2018SW002042.
 
 \bibitem{b23}
 R.~Tang et al., ``Short-time prediction of energetic electron flux based
@@ -883,7 +879,7 @@ neural networks with PROBA-V/EPT data,'' \emph{Space Weather}, vol.~21,
 e2023SW003466, 2023.
 
 \bibitem{b27}
-N.~Y.~Ganushkina et al., ``Forecasting GOES 15 \(>2\) MeV electron fluxes from
+C.~Forsyth et al., ``Forecasting GOES 15 \(>2\) MeV electron fluxes from
 solar wind data and geomagnetic indices,'' \emph{Space Weather}, vol.~18,
 e2019SW002416, 2020.
 
@@ -891,8 +887,8 @@ e2019SW002416, 2020.
 D.~P. Kingma and J.~Ba, ``Adam: A method for stochastic optimization,''
 in \emph{Proc.\ Int. Conf. Learn. Represent.\ (ICLR)}, 2015.
 
-
-
+\bibitem{b29}
+Z.~Zhao et al., ``Forecasting 1-hr to 24-hr relativistic electron fluxes at geostationary orbit using a deep learning model,'' \emph{Space Weather}, vol.~23, e2025SW004419, 2025.
 
 \end{thebibliography}
 
