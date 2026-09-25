@@ -82,17 +82,6 @@ Set `DEMO_MODE = False` only when a full retraining is intended. Headline evalua
 
 This repository is being submitted as an **existing Phase 1 Portfolio Project** for Build Next 2026. The implementation and reported experiments pre-date the challenge and are presented without representing them as newly created during the challenge.
 
-## Citation
-
-```bibtex
-@article{samarth2026storm,
-  title={STORM-PhysNet: A Multi-Horizon Transformer for Geostationary Relativistic Electron Flux Forecasting with Physics-Inspired Components and Cross-Satellite Transfer},
-  author={Samarth BN and Samrudh S Malali and Dhyan M and Sanjana H V},
-  journal={IEEE Access},
-  year={2026},
-  note={Manuscript under review}
-}
-```
 
 ## License and data
 
