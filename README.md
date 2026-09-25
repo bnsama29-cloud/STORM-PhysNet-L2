@@ -1,8 +1,6 @@
-Manuscript PDF is not stored in this repository; code and tables here match the submitted paper.
+
 
 # STORM-PhysNet
-
-Official implementation of the **IEEE Access** paper:
 
 **STORM-PhysNet: A Multi-Horizon Transformer for Geostationary Relativistic Electron Flux Forecasting with Physics-Inspired Components and Cross-Satellite Transfer**
 
