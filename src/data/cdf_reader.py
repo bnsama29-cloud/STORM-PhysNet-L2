@@ -26,7 +26,7 @@ GOES_VAR_MAP = {
     "GOES-15": {
         "time": "Epoch",
         "flux_gt2mev": "E2W_COR_FLUX",
-        "quality_flag": "E1_QUAL_FLAG",
+        "quality_flag": "E1_QUAL_FLAG",  # not present in the CDAWeb science file; bad samples are fill values (-99999)
     },
     # GOES-16/17 (GOES-R series)
     "GOES-16": {

@@ -110,6 +110,10 @@ class AdaptivePropagationDelay(nn.Module):
         x_hi = torch.gather(x, 1, idx_hi.unsqueeze(-1).expand(B, T, Feat))
 
         tau_frac_expand = tau_frac.unsqueeze(-1)              # [B, 1, 1] -> broadcasts over T,F
+        # NOTE (behaviour of the trained models, kept as-is for reproducibility): x_hi is the hour AFTER x_lo, so the
+        # output at hour t mixes hours t-floor(tau) and t-floor(tau)+1 with weight frac(tau). At the learned tau = 1.5 h
+        # this is an equal-weight average of hours t-1 and t (0.5 h lag + two-point smoothing), not a 1.5 h shift.
+        # Everything stays inside the input window, so no future information is used.
         x_delayed = (1.0 - tau_frac_expand) * x_lo + tau_frac_expand * x_hi
         return x_delayed, tau
 

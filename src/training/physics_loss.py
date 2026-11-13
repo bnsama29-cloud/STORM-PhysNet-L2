@@ -31,6 +31,8 @@ class LossWeights:
     horizon_weights:  list = None  # [1.0, 0.7, 0.5] for [1h, 6h, 12h]
     # NEW: scale physics constraints per horizon (Week 1: physics hurts 6h/12h)
     physics_horizon_scale: list = None  # e.g. [1.0, 0.0, 0.0]
+    # Lead time of each horizon in hours (used by the monotonicity bound)
+    horizon_hours: list = None  # default [1.0, 6.0, 12.0]
     # Auxiliary task weights
     lambda_dst:       float = 0.10
     lambda_kp:        float = 0.05
@@ -42,6 +44,9 @@ class LossWeights:
     lambda_delay:     float = 0.01   # delay regularization
     lambda_var:       float = 0.05   # uncertainty calibration
     lambda_epsilon:   float = 0.08   # Akasofu epsilon coupling-function consistency
+    # Spectral-parameterisation head (only models built with use_spectral_head): horizon-weighted MSE of its
+    # flux prediction plus a weak prior on kappa. Without this term the head was never trained.
+    lambda_spectral:  float = 0.10
     # Storm asymmetry
     storm_under_penalty: float = 2.5   # multiplier for under-prediction in storms
     smooth_threshold:    float = 1.0   # max allowed |Δflux/Δt| in log units
@@ -52,6 +57,8 @@ class LossWeights:
         if self.physics_horizon_scale is None:
             # Default after Week 1: physics only on short head
             self.physics_horizon_scale = [1.0, 0.0, 0.0]
+        if self.horizon_hours is None:
+            self.horizon_hours = [1.0, 6.0, 12.0]
 
 
 class PhysicsInformedLoss(nn.Module):
@@ -69,6 +76,7 @@ class PhysicsInformedLoss(nn.Module):
         self.register_buffer("horizon_weights", hw / hw.sum())
         phs = torch.tensor(self.w.physics_horizon_scale, dtype=torch.float32)
         self.register_buffer("physics_horizon_scale", phs)
+        self.register_buffer("horizon_hours", torch.tensor(self.w.horizon_hours, dtype=torch.float32))
 
     # ──────────────────────────────────────────────────────────────────────────
     # Primary Loss
@@ -82,7 +90,7 @@ class PhysicsInformedLoss(nn.Module):
         log_var:    torch.Tensor,    # [B, H]
     ) -> torch.Tensor:
         """
-        beta-NLL loss (Stirn et al., NeurIPS 2023).
+        beta-NLL loss (Seitzer et al., ICLR 2022).
         Prevents variance branch from hijacking mean prediction gradients.
         beta=0.5 is the theoretically proven optimal value.
 
@@ -219,7 +227,8 @@ class PhysicsInformedLoss(nn.Module):
         max_rate = max_rate.clamp(0.01, 2.0)                # [B]
 
         # Violation: predicted correction exceeds max rate per horizon
-        horizons = torch.tensor([1.0, 6.0, 12.0], device=flux_residual.device)
+        horizons = self.horizon_hours.to(flux_residual.device)
+        assert horizons.numel() == flux_residual.size(1), "horizon_hours must have one entry per forecast horizon"
         max_per_horizon = max_rate.unsqueeze(1) * horizons.unsqueeze(0)  # [B,H]
         violation = F.relu(flux_residual.abs() - max_per_horizon)
         return violation.mean()
@@ -364,6 +373,14 @@ class PhysicsInformedLoss(nn.Module):
         L_smooth = self._smooth_loss(flux_pred) * long_scale
         L_var    = self._uncertainty_calibration_loss(log_var, sq_errors)
         L_delay  = delay_loss
+        if "spectral_flux_pred" in outputs:
+            from src.model.spectral_head import spectral_shape_regularizer
+            spec = torch.nan_to_num(outputs["spectral_flux_pred"], nan=0.0, posinf=6.0, neginf=-2.0)
+            hw = self.horizon_weights.to(spec.device)[: spec.size(1)]
+            L_spec = ((spec - y_flux).pow(2).mean(0) * hw).sum() / hw.sum() \
+                + spectral_shape_regularizer(outputs["spectral_kappa"], outputs["spectral_theta"])
+        else:
+            L_spec = torch.zeros((), device=flux_pred.device)
 
         # ── Total ─────────────────────────────────────────────────────────────
         total = (L_primary
@@ -375,7 +392,8 @@ class PhysicsInformedLoss(nn.Module):
                  + self.w.lambda_smooth    * L_smooth
                  + self.w.lambda_var       * L_var
                  + self.w.lambda_delay     * L_delay
-                 + self.w.lambda_epsilon   * L_eps)
+                 + self.w.lambda_epsilon   * L_eps
+                 + self.w.lambda_spectral  * L_spec)
 
         components = {
             "primary":    L_primary.item(),
@@ -388,6 +406,7 @@ class PhysicsInformedLoss(nn.Module):
             "var_calib":  L_var.item(),
             "delay_reg":  L_delay.item() if hasattr(L_delay, "item") else float(L_delay),
             "epsilon":    L_eps.item() if hasattr(L_eps, "item") else float(L_eps),
+            "spectral":   L_spec.item(),
             "total":      total.item(),
         }
         return total, components
