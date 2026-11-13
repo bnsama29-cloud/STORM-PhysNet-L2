@@ -27,15 +27,21 @@ LABEL = {"storm_bz": "STORM-PhysNet", "storm_lstm_backbone": "STORM-PhysNet (LST
          "tf_res_fixed_ma": "Residual TF + fixed avg.", "storm_fixed_ma": "fixed average", "storm_no_delay": "no delay",
          "storm_no_gate": "no gate", "storm_no_physics": "no physics loss", "storm_cathode": "cathode-anode gate",
          "storm_cathode_spec": "cathode-anode + spectral", "storm_radiotrophic": "radiotrophic gate",
-         "storm_magnetopause": "+ magnetopause"}
-COL = {"storm_bz": "#c0392b", "storm_lstm_backbone": "#e67e22", "tf_ffn_res": "#2471a3", "transformer_matched": "#7d3c98",
-       "lstm": "#229954", "mlp": "#17a589", "tf_flux_only": "#b9770e", "persistence": "#555555", "tf_res_fixed_ma": "#5dade2",
-       "transformer": "#a569bd", "cnn": "#aab7b8", "tf_ffn256": "#85c1e9"}
-plt.rcParams.update({"font.size": 8, "axes.titlesize": 8, "axes.labelsize": 8, "legend.fontsize": 7,
+         "storm_magnetopause": "+ magnetopause", "storm_physfix": "physics loss in physical units",
+         "lstm_res": "LSTM, residual", "storm_lstm_no_gate": "no gate", "storm_lstm_no_delay": "no delay",
+         "storm_lstm_no_physics": "no physics loss", "storm_lstm_physfix": "physics loss in physical units"}
+COL = {  # Okabe-Ito colour-blind-safe palette (line styles also differ where colours repeat)
+    "storm_bz": "#D55E00", "storm_lstm_backbone": "#E69F00", "tf_ffn_res": "#0072B2", "transformer_matched": "#CC79A7",
+    "lstm": "#009E73", "mlp": "#56B4E9", "tf_flux_only": "#F0E442", "persistence": "#555555", "tf_res_fixed_ma": "#0072B2",
+    "transformer": "#CC79A7", "cnn": "#999999", "tf_ffn256": "#56B4E9"}
+plt.rcParams.update({"font.size": 9, "axes.titlesize": 9, "axes.labelsize": 9, "legend.fontsize": 8,
+                     "xtick.labelsize": 8.5, "ytick.labelsize": 8.5, "lines.linewidth": 1.2,
                      "axes.spines.top": False, "axes.spines.right": False, "savefig.dpi": 300, "savefig.bbox": "tight"})
 
 
-def save(fig, out, name): fig.savefig(out / name); plt.close(fig)
+def save(fig, out, name):
+    """Vector PDF (for the manuscript and the submission system) plus a 300-dpi PNG preview."""
+    fig.savefig(out / name); fig.savefig(out / name.replace(".png", ".pdf")); plt.close(fig)
 
 
 def gaps(t, *ys, max_gap="1h"):
@@ -51,65 +57,77 @@ def gaps(t, *ys, max_gap="1h"):
 
 # ------------------------------------------------------------------------------------------------ skill vs lead time
 def fig_horizon(N, out):
-    H = N["horizons"]; fig, ax = plt.subplots(figsize=(COL1, 2.6))
+    H = N["horizons"]; fig, ax = plt.subplots(figsize=(COL1, 3.4))
     ax.plot(H, N["persistence"]["pe_clim"], "--", color=COL["persistence"], label=LABEL["persistence"])
     for f in ("cnn", "lstm", "mlp", "transformer_matched", "tf_ffn_res", "storm_bz", "storm_lstm_backbone"):
         if f in N["main"]:
             m = np.array(N["main"][f]["pe_clim"]); s = np.array(N["main"][f]["sd"])
             ax.errorbar(H, m, yerr=s, marker="o", ms=3, capsize=2, lw=1.2, color=COL[f], label=LABEL[f])
     ax.set_xticks(H); ax.set_xlabel("Lead time (h)"); ax.set_ylabel(r"PE$_\mathrm{clim}$"); ax.set_ylim(0.2, 1.0)
-    ax.legend(frameon=False, ncol=2, loc="lower left"); save(fig, out, "fig_horizon.png")
+    ax.legend(frameon=False, ncol=2, fontsize=7.5, loc="upper center", bbox_to_anchor=(0.45, -0.22), columnspacing=1.0)
+    fig.tight_layout(); save(fig, out, "fig_horizon.png")
 
 
 # ------------------------------------------------------------------------------------------------ attribution forest plot
-def fig_attribution(N, out, P, meta):
+def fig_attribution(N, out, P, meta, ref="storm_bz", fams=None, name="fig_attribution.png", prefix="STORM, ",
+                    plain=("storm_lstm_backbone", "tf_ffn_res"), xlabel_ref="STORM-PhysNet"):
+    """Forest plot of PE_clim differences (family minus ref) with 95% CI over seeds; families missing from P are skipped."""
     H = N["horizons"]; blocks = sorted(P)
-    fams = ["storm_no_delay", "storm_fixed_ma", "storm_no_gate", "storm_no_physics", "storm_cathode", "storm_cathode_spec",
-            "storm_radiotrophic", "storm_magnetopause", "storm_lstm_backbone", "tf_ffn_res"]
-    fams = [f for f in fams if f in N["main"]]
-    seeds = sorted(P[blocks[0]]["storm_bz"])
-    ref = np.array([np.mean([pe_clim(meta[b]["y"], P[b]["storm_bz"][s]["pred"]) for b in blocks], 0) for s in seeds])
-    fig, axs = plt.subplots(1, len(H), figsize=(COL2, 2.9), sharey=True)
+    if fams is None:
+        fams = ["storm_no_delay", "storm_fixed_ma", "storm_no_gate", "storm_no_physics", "storm_physfix", "storm_cathode",
+                "storm_cathode_spec", "storm_radiotrophic", "storm_magnetopause", "storm_lstm_backbone", "tf_ffn_res"]
+    fams = [f for f in fams if all(f in P[b] for b in blocks)]
+    if not fams or not all(ref in P[b] for b in blocks):
+        return
+    seeds = sorted(P[blocks[0]][ref])
+    ref_v = np.array([np.mean([pe_clim(meta[b]["y"], P[b][ref][s]["pred"]) for b in blocks], 0) for s in seeds])
+    fig, axs = plt.subplots(1, len(H), figsize=(COL2, 1.0 + 0.24 * len(fams)), sharey=True, layout="constrained")
     for i, h in enumerate(H):
         ax = axs[i]
         for k, f in enumerate(fams):
-            v = np.array([np.mean([pe_clim(meta[b]["y"], P[b][f][s]["pred"]) for b in blocks], 0) for s in seeds])[:, i] - ref[:, i]
+            v = np.array([np.mean([pe_clim(meta[b]["y"], P[b][f][s]["pred"]) for b in blocks], 0) for s in seeds])[:, i] - ref_v[:, i]
             m = v.mean(); ci = 2.262 * v.std(ddof=1) / np.sqrt(len(v))              # t(0.975, 9)
-            c = "#e67e22" if f == "storm_lstm_backbone" else ("#2471a3" if f == "tf_ffn_res" else "#444444")
-            ax.errorbar(m, k, xerr=ci, fmt="o", ms=3, color=c, capsize=2)
-        ax.axvline(0, color="k", lw=0.6); ax.set_title(f"{h} h")
-    axs[0].set_yticks(range(len(fams))); axs[0].set_yticklabels([LABEL[f] if f in ("storm_lstm_backbone", "tf_ffn_res") else "STORM, " + LABEL[f] for f in fams])
-    axs[0].invert_yaxis(); fig.supxlabel(r"$\Delta\mathrm{PE}_\mathrm{clim}$ relative to STORM-PhysNet (mean and 95% CI over ten seeds)", fontsize=8)
-    fig.tight_layout(); save(fig, out, "fig_attribution.png")
+            c = COL.get(f, "#444444") if f in plain else "#444444"
+            ax.errorbar(m, k, xerr=ci, fmt="o", ms=3.5, color=c, capsize=2)
+        ax.axvline(0, color="k", lw=0.6); ax.set_title(f"{h} h"); ax.tick_params(axis="x", labelsize=7.5)
+    axs[0].set_yticks(range(len(fams))); axs[0].set_yticklabels([LABEL[f] if f in plain else prefix + LABEL[f] for f in fams])
+    axs[0].invert_yaxis()
+    fig.supxlabel(r"$\Delta\mathrm{PE}_\mathrm{clim}$ relative to " + xlabel_ref + " (mean and 95% CI over ten seeds)", fontsize=9)
+    save(fig, out, name)
 
 
 # ------------------------------------------------------------------------------------------------ noise robustness
 def fig_noise(N, out):
     H = N["horizons"]; sig = [0, 0.5, 1, 2]
-    fig, axs = plt.subplots(1, len(H), figsize=(COL2, 2.2))
+    fig, axs = plt.subplots(1, len(H), figsize=(COL2, 2.6))
     for i, h in enumerate(H):
         ax = axs[i]
         for f in ("storm_bz", "storm_lstm_backbone", "tf_ffn_res", "tf_res_fixed_ma", "transformer_matched", "mlp"):
             if f not in N["probes"]: continue
             v = [N["main"][f]["pe_clim"][i]] + [N["probes"][f][f"noise{s:g}"][i] for s in sig[1:]]
-            ax.plot(sig, v, marker="o", ms=2.5, lw=1.1, color=COL[f], label=LABEL[f])
+            ax.plot(sig, v, marker="o", ms=2.5, lw=1.1, color=COL[f], label=LABEL[f], ls="--" if f == "tf_res_fixed_ma" else "-")
         ax.set_title(f"{h} h"); ax.set_xticks(sig); ax.set_xlabel(r"noise $\sigma$")
         if i == 0: ax.set_ylabel(r"PE$_\mathrm{clim}$")
         ax.set_ylim(max(-0.2, ax.get_ylim()[0]), 1.0)
-    axs[0].legend(frameon=False, fontsize=6); fig.tight_layout(); save(fig, out, "fig_noise.png")
+    hd, lb = axs[0].get_legend_handles_labels()
+    fig.legend(hd, lb, frameon=False, fontsize=8, ncol=min(6, len(lb)), loc="upper center", bbox_to_anchor=(0.5, 1.0))
+    fig.tight_layout(rect=(0, 0, 1, 0.86)); save(fig, out, "fig_noise.png")
 
 
 # ------------------------------------------------------------------------------------------------ predicted vs observed
+SCAT = {"storm_lstm_backbone": "STORM-PhysNet (LSTM)"}
+
+
 def fig_scatter(P, meta, out, h_idx=2, block="B"):
     fams = [("persistence", None), ("tf_ffn_res", "tf_ffn_res"), ("storm_lstm_backbone", "storm_lstm_backbone")]
     y = meta[block]["y"][:, h_idx]
     fig, axs = plt.subplots(1, 3, figsize=(COL2, 2.4), sharex=True, sharey=True)
     for ax, (name, f) in zip(axs, fams):
         p = meta[block]["persist"] if f is None else np.mean([P[block][f][s]["pred"][:, h_idx] for s in P[block][f]], 0)
-        hb = ax.hexbin(y, p, gridsize=45, bins="log", cmap="viridis", mincnt=1)
+        hb = ax.hexbin(y, p, gridsize=45, bins="log", cmap="cividis", mincnt=1)
         lo, hi = 0.8, 5.4; ax.plot([lo, hi], [lo, hi], "w--", lw=0.7)
         pe = 1 - np.mean((y - p) ** 2) / np.var(y); r = np.corrcoef(y, p)[0, 1]
-        ax.set_title(f"{LABEL[name]}\nPE = {pe:.3f}, r = {r:.3f}"); ax.set_xlabel(r"observed log$_{10}$ flux")
+        ax.set_title(f"{SCAT.get(name, LABEL[name])}\nPE = {pe:.3f}, r = {r:.3f}", fontsize=8.5); ax.set_xlabel(r"observed log$_{10}$ flux")
         ax.set_xlim(lo, hi); ax.set_ylim(lo, hi)
     axs[0].set_ylabel(r"forecast log$_{10}$ flux (12 h)")
     fig.colorbar(hb, ax=axs, shrink=0.8, label="windows"); save(fig, out, "fig_scatter.png")
@@ -130,7 +148,7 @@ def fig_case_goes15(P, meta, out, block="B", start="2015-03-14", end="2015-04-01
             ax.plot(tt, y, color=COL[f], lw=1.0, label=LABEL[f])
         ax.axhline(3.0, color="#999999", lw=0.6, ls=":"); ax.set_ylabel(r"log$_{10}$ flux")
         ax.text(0.01, 0.92, f"{h} h ahead", transform=ax.transAxes)
-    axs[0].legend(frameon=False, ncol=5, fontsize=6, loc="lower center", bbox_to_anchor=(0.5, 1.02))
+    axs[0].legend(frameon=False, ncol=3, fontsize=8, loc="lower center", bbox_to_anchor=(0.5, 1.02))
     axs[1].xaxis.set_major_locator(mdates.DayLocator(interval=3)); axs[1].xaxis.set_major_formatter(mdates.DateFormatter("%d %b"))
     axs[1].set_xlabel("2015 (valid time)"); fig.tight_layout(); save(fig, out, "fig_case_2015.png")
 
@@ -161,16 +179,20 @@ def fig_case_goes16(tdirs, out, start="2024-05-08", end="2024-05-25", h=12):
     for (key, lab, c, ls, lw, _), y in zip(curves, ys): ax.plot(tt, y, color=c, ls=ls, lw=lw, label=lab)
     ax.axhline(3.0, color="#999999", lw=0.6, ls=":"); ax.set_ylabel(r"log$_{10}$ flux (12 h ahead)"); ax.set_xlabel("2024 (valid time)")
     ax.xaxis.set_major_locator(mdates.DayLocator(interval=2)); ax.xaxis.set_major_formatter(mdates.DateFormatter("%d %b"))
-    ax.legend(frameon=False, ncol=3, fontsize=6, loc="lower center", bbox_to_anchor=(0.5, 1.0))
+    ax.legend(frameon=False, ncol=3, fontsize=8, loc="lower center", bbox_to_anchor=(0.5, 1.0))
     fig.tight_layout(); save(fig, out, "fig_case_2024.png")
 
 
 # ------------------------------------------------------------------------------------------------ calibration
+HCOL = ["#0072B2", "#E69F00", "#009E73", "#D55E00"]           # Okabe-Ito, one colour per lead time
+SHORT = {"storm_bz": "STORM-PhysNet\n(Transformer enc.)", "storm_lstm_backbone": "STORM-PhysNet\n(LSTM enc.)"}
+
+
 def fig_calibration(P, meta, out):
     levels = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95])
     from scipy.stats import norm
     z = norm.ppf(0.5 + levels / 2); H = [int(h) for h in meta[sorted(meta)[0]]["horizons"]]
-    fig, axs = plt.subplots(1, 2, figsize=(COL2 * 0.62, 2.4), sharey=True)
+    fig, axs = plt.subplots(1, 2, figsize=(COL1, 2.3), sharey=True)
     for ax, f in zip(axs, ("storm_bz", "storm_lstm_backbone")):
         for i, h in enumerate(H):
             cov = []
@@ -179,9 +201,9 @@ def fig_calibration(P, meta, out):
                 for s in P[b][f]:
                     mu = P[b][f][s]["pred"][:, i]; sg = np.exp(0.5 * P[b][f][s]["logvar"][:, i])
                     cov.append([(np.abs(y - mu) <= zz * sg).mean() for zz in z])
-            ax.plot(levels, np.mean(cov, 0), marker="o", ms=2.5, label=f"{h} h")
-        ax.plot([0, 1], [0, 1], "k--", lw=0.6); ax.set_title(LABEL[f]); ax.set_xlabel("nominal coverage")
-    axs[0].set_ylabel("observed coverage"); axs[0].legend(frameon=False)
+            ax.plot(levels, np.mean(cov, 0), marker="o", ms=2.5, color=HCOL[i % len(HCOL)], label=f"{h} h")
+        ax.plot([0, 1], [0, 1], "k--", lw=0.6); ax.set_title(SHORT[f], fontsize=8.5); ax.set_xlabel("nominal coverage")
+    axs[0].set_ylabel("observed coverage"); axs[0].legend(frameon=False, fontsize=7.5, handlelength=1.2, loc="lower right")
     fig.tight_layout(); save(fig, out, "fig_calibration.png")
 
 
@@ -192,17 +214,20 @@ def fig_transfer(N, out):
     i12 = H.index(12)
     fams = [f for f in ("storm_bz", "storm_lstm_backbone", "tf_ffn_res", "transformer_matched") if f in T[tg[0]]]
     var = ("zeroshot", "heads", "full"); w = 0.8 / len(fams)
-    fig, axs = plt.subplots(1, len(tg), figsize=(COL2, 2.4), sharey=True)
+    fig, axs = plt.subplots(1, len(tg), figsize=(COL2, 2.7), sharey=True)
     for ax, t in zip(np.atleast_1d(axs), tg):
         x = np.arange(len(var))
         for k, f in enumerate(fams):
             if f in T[t]:
                 ax.bar(x + (k - (len(fams) - 1) / 2) * w, [T[t][f].get(v, [np.nan] * len(H))[i12] for v in var], w,
                        color=COL[f], label=LABEL[f])
-        ax.axhline(T[t]["persistence"]["-"][i12], ls="--", color=COL["persistence"], lw=1)
-        ax.set_xticks(x); ax.set_xticklabels(["zero-shot", "heads", "full"]); ax.set_title(name[t]); ax.set_ylim(-0.1, 0.9)
-    np.atleast_1d(axs)[0].set_ylabel(r"12 h PE$_\mathrm{clim}$"); np.atleast_1d(axs)[0].legend(frameon=False, fontsize=6, loc="upper left")
-    fig.tight_layout(); save(fig, out, "fig_transfer.png")
+        ax.axhline(T[t]["persistence"]["-"][i12], ls="--", color=COL["persistence"], lw=1, label="Persistence")
+        ax.axhline(0, color="k", lw=0.5)
+        ax.set_xticks(x); ax.set_xticklabels(["zero-shot", "heads", "full"]); ax.set_title(name[t]); ax.set_ylim(-0.4, 0.9)
+    a0 = np.atleast_1d(axs)[0]; a0.set_ylabel(r"12 h PE$_\mathrm{clim}$")
+    hd, lb = a0.get_legend_handles_labels()
+    fig.legend(hd, lb, frameon=False, fontsize=8, ncol=len(lb), loc="upper center", bbox_to_anchor=(0.5, 1.0))
+    fig.tight_layout(rect=(0, 0, 1, 0.87)); save(fig, out, "fig_transfer.png")
 
 
 # ------------------------------------------------------------------------------------------------ data coverage and GOES-15 vs GOES-16
@@ -222,15 +247,15 @@ def fig_coverage_and_overlap(repo, out):
              (1, "2022-07-01", "2023-06-30", "F1"), (1, "2024-01-01", "2025-04-07", "F2"), (2, "2025-07-01", "2026-10-14", "F1"),
              (3, "2018-02-01", "2018-09-01", "G1–3")]
     for i, a, b, lab in tests:
-        ax.axvspan(pd.Timestamp(a), pd.Timestamp(b), ymin=(i + 0.1) / 4, ymax=(i + 0.9) / 4, color="#c0392b", alpha=0.25)
-        ax.text(pd.Timestamp(a), i + 0.28, lab, fontsize=6, color="#922b21")
-    ax.axvspan(pd.Timestamp("2017-03-11"), pd.Timestamp("2018-09-07"), ymin=0.02, ymax=0.23, color="#2471a3", alpha=0.2)
+        ax.axvspan(pd.Timestamp(a), pd.Timestamp(b), ymin=(i + 0.1) / 4, ymax=(i + 0.9) / 4, color="#D55E00", alpha=0.25)
+        ax.text(pd.Timestamp(a), i + 0.28, lab, fontsize=8, color="#8a3b00")
+    ax.axvspan(pd.Timestamp("2017-03-11"), pd.Timestamp("2018-09-07"), ymin=0.02, ymax=0.23, color="#0072B2", alpha=0.2)
     ax.set_yticks(range(4)); ax.set_yticklabels([r[0] for r in rows]); ax.set_ylim(-0.5, 3.5)
     save(fig, out, "fig_data.png")
     j = pd.concat([np.log10(g15.clip(lower=1e-6)), np.log10(g16)], axis=1, keys=["g15", "g16"]).dropna()
     d = j.resample("1D").mean().dropna()
     fig, ax = plt.subplots(figsize=(COL1, 2.8))
-    ax.scatter(d.g15, d.g16, s=3, alpha=0.5, color="#2471a3")
+    ax.scatter(d.g15, d.g16, s=3, alpha=0.5, color="#0072B2")
     lo, hi = min(d.min()), max(d.max()); ax.plot([lo, hi], [lo, hi], "k--", lw=0.8)
     ax.set_xlabel(r"GOES-15 daily mean log$_{10}$ flux"); ax.set_ylabel(r"GOES-16 daily mean log$_{10}$ flux")
     save(fig, out, "fig_g15_g16.png")
@@ -247,6 +272,9 @@ def main():
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True); N = json.load(open(a.numbers))
     meta, P = load_blocks(a.blocks)
     fig_horizon(N, out); fig_noise(N, out); fig_transfer(N, out); fig_attribution(N, out, P, meta)
+    fig_attribution(N, out, P, meta, ref="storm_lstm_backbone", name="fig_attribution_lstm.png", prefix="LSTM enc., ",
+                    fams=["lstm_res", "storm_lstm_no_gate", "storm_lstm_no_delay", "storm_lstm_no_physics", "storm_lstm_physfix"],
+                    plain=("lstm_res",), xlabel_ref="STORM-PhysNet (LSTM enc.)")
     fig_scatter(P, meta, out); fig_case_goes15(P, meta, out); fig_calibration(P, meta, out); fig_case_goes16(a.transfer, out)
     ov = fig_coverage_and_overlap(Path(a.repo).resolve(), out)
     json.dump(ov, open(out / "overlap.json", "w"), indent=1); print(json.dumps(ov, indent=1))

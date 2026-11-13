@@ -1,0 +1,36 @@
+\documentclass[11pt,a4paper]{letter}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{xcolor}
+\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+\signature{Samarth B N\\Department of Electronics and Communication Engineering\\RV College of Engineering, Bengaluru 560059, India\\samarthbn.ec25@rvce.edu.in}
+\address{}
+\begin{document}
+\begin{letter}{Editor-in-Chief\\Advances in Space Research}
+\opening{Dear Editor,}
+
+I submit the manuscript ``Physics-guided versus data-driven forecasts of relativistic electrons at
+geostationary orbit: skill, robustness and transfer across four satellites'' for consideration as a research
+article in \emph{Advances in Space Research}.
+
+Forecasts of \(>2\)\,MeV electrons at geostationary orbit are needed to protect satellites from internal
+charging, including at longitudes that no GOES satellite monitors. The manuscript compares a physics-guided
+forecast network with 22 other model families at lead times of 1--24\,h, using a leakage-controlled protocol, ten
+seeds on three disjoint test periods and paired significance tests. It then tests transfer from GOES-15 to
+GOES-16, GOES-18 and India's GSAT-19 GRASP. The results show that the physics-inspired components do not change
+accuracy significantly, that a plain LSTM forecasting the change from persistence matches the full physics-guided
+model and transfers best to other satellites, and that predicting changes rather than flux levels is what survives
+a calibration and longitude offset. I believe this fits the journal's scope in space weather and the space environment.
+
+\textbf{Prior version.} An earlier, shorter version of this work (\emph{STORM-PhysNet: Multi-Horizon Forecasting
+of Relativistic Electron Hazards to Geostationary Satellites with Transfer to GSAT-19}) was accepted at the
+AGERS 2026 conference and withdrawn before publication; it has not been published or
+posted elsewhere. The present manuscript extends it with a 24\,h lead time, fourteen additional model families,
+probabilistic evaluation, storm-time and alert scores, and transfer to GOES-16 and GOES-18.
+\todo{confirm the withdrawal date and that no preprint exists}
+
+The manuscript is not under consideration elsewhere. The code, data processing and predictions are openly
+available. I suggest Section EM of the journal.
+
+\closing{Yours sincerely,}
+\end{letter}
+\end{document}

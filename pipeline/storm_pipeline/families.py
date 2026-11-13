@@ -35,17 +35,29 @@ SPEC = {
     "storm_lstm_no_gate": dict(model_type="storm_physnet", ablation="no_bz_gate", match=False, model=dict(backbone="lstm")),
     "storm_lstm_no_delay": dict(model_type="storm_physnet", ablation="no_delay", match=False, model=dict(backbone="lstm")),
     "storm_lstm_no_physics": dict(model_type="storm_physnet", ablation="no_physics", match=False, model=dict(backbone="lstm")),
+    # loss as intended: physics terms and Dst/Kp auxiliary targets in physical units (unit bug found while writing the
+    # journal paper; the earlier families keep the original behaviour so their runs reproduce); otherwise identical
+    "storm_physfix": dict(model_type="storm_physnet", ablation="none", match=False, physical_loss=True),
+    "storm_lstm_physfix": dict(model_type="storm_physnet", ablation="none", match=False, physical_loss=True,
+                               model=dict(backbone="lstm")),
     "storm_magnetopause": dict(model_type="storm_physnet", ablation="none", match=False,
                                model=dict(use_magnetopause=True, vsw_idx=SW_COLS.index("vsw"),
                                           density_idx=SW_COLS.index("density"), pdyn_idx=SW_COLS.index("pdyn"))),
 }
 
 
-def configure(cfg, family):
-    """Apply a family's settings to a deep copy of the base config (in place) and return it."""
+def configure(cfg, family, scaler=None):
+    """Apply a family's settings to a deep copy of the base config (in place) and return it.
+    scaler: (mu, sd) of the block; train_block.py always passes it, so the "physfix" families train their physics
+    loss in physical units. Without it (transfer.py, which only builds architectures to load weights) it is not set."""
     s = SPEC[family]
     cfg["model_type"], cfg["ablation"], cfg["match_storm_capacity"] = s["model_type"], s["ablation"], s["match"]
     cfg["model"].update(s.get("model", {}))
+    if s.get("physical_loss") and scaler is not None:   # training needs it; building a model to load weights does not
+        mu, sd = scaler
+        assert list(SW_COLS[: len(mu)]) == list(SCALED), "scaler columns must be the leading input channels"
+        cfg.setdefault("loss", {})["input_scaler"] = ([float(v) for v in mu], [float(v) for v in sd])
+        cfg["loss"]["dst_idx"], cfg["loss"]["kp_idx"] = SCALED.index("dst"), SCALED.index("kp")
     return cfg
 
 

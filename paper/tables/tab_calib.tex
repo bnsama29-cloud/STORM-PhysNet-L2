@@ -1,0 +1,32 @@
+\begin{table*}[!t]
+\centering
+\caption{Coverage of the predicted $1\sigma$ / $1.96\sigma$ intervals (nominal 0.68 / 0.95).}
+\label{tab:calib}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{lcccc}
+\toprule
+Model & 1\,h & 6\,h & 12\,h & 24\,h \\
+\midrule
+STORM-PhysNet & 0.72 / 0.94 & 0.67 / 0.92 & 0.69 / 0.93 & 0.70 / 0.91 \\
+\quad fixed average & 0.71 / 0.94 & 0.67 / 0.92 & 0.69 / 0.93 & 0.70 / 0.91 \\
+\quad no delay & 0.70 / 0.94 & 0.66 / 0.92 & 0.69 / 0.93 & 0.71 / 0.92 \\
+\quad no gate & 0.70 / 0.94 & 0.66 / 0.91 & 0.68 / 0.92 & 0.69 / 0.90 \\
+\quad no physics loss & 0.71 / 0.94 & 0.65 / 0.91 & 0.68 / 0.92 & 0.68 / 0.90 \\
+\quad physics loss in physical units & \pend{} & \pend{} & \pend{} & \pend{} \\
+\quad cathode--anode gate & 0.71 / 0.94 & 0.66 / 0.91 & 0.69 / 0.92 & 0.70 / 0.91 \\
+\quad cathode--anode + spectral head & 0.71 / 0.94 & 0.67 / 0.92 & 0.69 / 0.93 & 0.71 / 0.92 \\
+\quad radiotrophic gate & 0.71 / 0.94 & 0.66 / 0.92 & 0.70 / 0.93 & 0.70 / 0.91 \\
+\quad LSTM encoder & 0.75 / 0.94 & 0.65 / 0.90 & 0.65 / 0.90 & 0.69 / 0.91 \\
+\quad LSTM encoder, no gate & 0.74 / 0.94 & 0.66 / 0.90 & 0.67 / 0.91 & 0.71 / 0.92 \\
+\quad LSTM encoder, no delay & 0.74 / 0.94 & 0.65 / 0.90 & 0.66 / 0.91 & 0.72 / 0.92 \\
+\quad LSTM encoder, no physics loss & 0.75 / 0.95 & 0.65 / 0.90 & 0.66 / 0.90 & 0.71 / 0.91 \\
+\quad LSTM encoder, physics loss in physical units & \pend{} & \pend{} & \pend{} & \pend{} \\
+\quad + magnetopause features & 0.73 / 0.95 & 0.66 / 0.92 & 0.69 / 0.92 & 0.70 / 0.91 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+
+\par\vspace{0.5ex}{\footnotesize\raggedright Fraction of test targets inside $\hat y\pm\hat\sigma$ and $\hat y\pm1.96\hat\sigma$, averaged over seeds and blocks.\par}
+\end{table*}

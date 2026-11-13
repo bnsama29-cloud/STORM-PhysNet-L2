@@ -71,7 +71,11 @@ def load_blocks(dirs):
     meta, P = {}, defaultdict(lambda: defaultdict(dict))         # P[block][family][seed] = npz
     for d in dirs:
         for mf in glob.glob(f"{d}/meta_*.npz"):
-            b = re.search(r"meta_(\w)\.npz", mf).group(1); meta.setdefault(b, dict(np.load(mf, allow_pickle=True)))
+            b = re.search(r"meta_(\w)\.npz", mf).group(1); new = dict(np.load(mf, allow_pickle=True))
+            if b in meta:   # runs from different campaigns must share the same test windows, or the paired tests are void
+                assert meta[b]["y"].shape == new["y"].shape and np.allclose(meta[b]["y"], new["y"]), \
+                    f"{mf}: test targets differ from an earlier meta_{b}.npz (different code or data version?)"
+            meta.setdefault(b, new)
         for f in glob.glob(f"{d}/preds_*_s*.npz"):
             m = re.search(r"preds_(\w)_(.+)_s(\d+)\.npz", os.path.basename(f))
             P[m.group(1)][m.group(2)][int(m.group(3))] = np.load(f)
@@ -89,6 +93,23 @@ def per_seed(meta, P, fam, blocks, fn, key="pred"):
     """fn(meta_b, pred) -> (H,) ; returns (seeds, H) averaged over blocks."""
     seeds = sorted(P[blocks[0]][fam])
     return np.array([np.mean([fn(meta[b], P[b][fam][s][key]) for b in blocks], 0) for s in seeds])
+
+
+LSTM_ATTR = ["lstm_res", "storm_lstm_no_gate", "storm_lstm_no_delay", "storm_lstm_no_physics", "storm_lstm_physfix"]
+
+
+def paired(S, ref, fams, H):
+    """Paired t-tests of ref minus each family on the per-seed (block-averaged) scores, Holm-adjusted over all rows.
+    Families absent from S are skipped; returns [] when ref or every family is missing."""
+    fams = [f for f in fams if f in S and f != ref]
+    if ref not in S or not fams:
+        return []
+    rows, ps = [], []
+    for f in fams:
+        d = S[ref] - S[f]
+        for i, h in enumerate(H):
+            p = stats.ttest_1samp(d[:, i], 0).pvalue; rows.append((f, h, float(d[:, i].mean()), float(p))); ps.append(p)
+    return [dict(family=f, h=h, diff=dd, p=p, p_holm=float(a)) for (f, h, dd, p), a in zip(rows, holm(ps))]
 
 
 def analyse(meta, P, transfer_dirs):
@@ -113,6 +134,8 @@ def analyse(meta, P, transfer_dirs):
                 p = stats.ttest_1samp(d[:, i], 0).pvalue; rows.append((f, h, float(d[:, i].mean()), float(p))); ps.append(p)
         adj = holm(ps)
         N["paired_vs_storm"] = [dict(family=f, h=h, diff=dd, p=p, p_holm=float(a)) for (f, h, dd, p), a in zip(rows, adj)]
+    # 2b. attribution of the LSTM-encoder variant (campaigns 2 and 3): reference minus each one-component change
+    N["paired_vs_lstm"] = paired(S, "storm_lstm_backbone", LSTM_ATTR, H)
     # 3. storm-time RMSE (Dst <= -50 nT at the target hour)
     def storm_rmse(m, p):
         out = []
@@ -169,7 +192,8 @@ def transfer(dirs):
         for mf in glob.glob(f"{d}/transfer_meta*.npz"):
             tag = re.search(r"transfer_meta(.*)\.npz", os.path.basename(mf)).group(1)
             m = np.load(mf); preds = sorted(glob.glob(f"{d}/transfer_preds{tag}_s*.npz"))
-            if not preds: continue
+            if len(preds) != 10:   # an unfinished run would bias the fold means; report and skip it
+                print(f"WARNING {mf}: {len(preds)} seed files, expected 10 -- skipped"); continue
             Ps = [np.load(p) for p in preds]
             folds = sorted({k[:-2] for k in m.files if k.endswith("_y")})
             for key in sorted(Ps[0].files):

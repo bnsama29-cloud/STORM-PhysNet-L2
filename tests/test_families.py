@@ -15,7 +15,8 @@ CONFERENCE = ["lstm", "transformer_matched", "tf_ffn_res", "tf_flux_only", "stor
               "storm_fixed_ma", "tf_res_fixed_ma"]
 JOURNAL = ["transformer", "tf_ffn256", "mlp", "cnn", "storm_no_physics", "storm_cathode", "storm_cathode_spec",
            "storm_radiotrophic", "storm_lstm_backbone", "storm_magnetopause",
-           "lstm_res", "storm_lstm_no_gate", "storm_lstm_no_delay", "storm_lstm_no_physics"]
+           "lstm_res", "storm_lstm_no_gate", "storm_lstm_no_delay", "storm_lstm_no_physics",
+           "storm_physfix", "storm_lstm_physfix"]
 
 
 def make(fam, tmp_path, scaler=None):
@@ -116,3 +117,46 @@ def test_lstm_attribution_variants(tmp_path):
     assert type(r).__name__ == "ResLSTM" and r.residual
     o = r(x_sw=torch.zeros(2, 72, len(SW_COLS)), x_flux=torch.zeros(2, 72, 1), y_persist=torch.full((2, len(HSTEPS)), 3.0))
     assert o["flux_pred"].shape == (2, len(HSTEPS))
+
+
+def test_physfix_physics_loss_sees_physical_units(tmp_path):
+    """With the block scaler the Bz-response term switches on for Bz < -10 nT over > 6 h; without it (the
+    original runs) it never does, because the standardised Bz never falls below -10."""
+    import numpy as np
+    from storm_pipeline.families import configure
+    i_bz, i_dur, i_v = SW_COLS.index("bz"), SW_COLS.index("bz_south_duration"), SW_COLS.index("vsw")
+    mu = np.zeros(len(SCALED)); sd = np.ones(len(SCALED))
+    mu[i_v], sd[i_v] = 420.0, 93.0; sd[i_bz] = 2.75; mu[i_dur], sd[i_dur] = 0.33, 1.74
+    cfg = yaml.safe_load(open(ROOT / "configs/config.yaml"))
+    c = configure(copy.deepcopy(cfg), "storm_physfix", scaler=(mu, sd))
+    assert c["loss"]["input_scaler"][1][i_bz] == 2.75
+    assert "input_scaler" not in configure(copy.deepcopy(cfg), "storm_bz", scaler=(mu, sd)).get("loss", {})
+    B, H = 4, len(HSTEPS)
+    x = torch.zeros(B, 72, len(SW_COLS))
+    x[:, -1, i_bz] = (-15.0 - 0.0) / 2.75          # Bz = -15 nT
+    x[:, -1, i_dur] = (8.0 - 0.33) / 1.74          # southward for 8 h
+    out = {"flux_pred": torch.zeros(B, H), "flux_residual": torch.zeros(B, H)}
+    tg = {"y_flux": torch.ones(B, H), "y_dst": torch.zeros(B, H), "y_kp": torch.zeros(B, H), "y_storm": torch.zeros(B, 1),
+          "storm_flag": torch.zeros(B, 1), "y_persist": torch.zeros(B, H)}
+    old = PhysicsInformedLoss(LossWeights(horizon_hours=[float(h) for h in HSTEPS]))
+    new = PhysicsInformedLoss(LossWeights(horizon_hours=[float(h) for h in HSTEPS])); new.set_input_scaler(mu, sd)
+    assert old(out, tg, x)[1]["bz_resp"] == 0.0
+    assert new(out, tg, x)[1]["bz_resp"] > 0.0
+    xp = new.physical_inputs(x)
+    assert xp[0, -1, i_bz].item() == pytest.approx(-15.0, abs=1e-4) and xp[0, -1, -1].item() == x[0, -1, -1].item()
+
+
+def test_physfix_auxiliary_targets_in_physical_units():
+    """Dst and Kp targets arrive standardised; with the scaler and indices the loss compares in nT and Kp units."""
+    import numpy as np
+    i_dst, i_kp = SCALED.index("dst"), SCALED.index("kp")
+    mu = np.zeros(len(SCALED)); sd = np.ones(len(SCALED)); mu[i_dst], sd[i_dst] = -12.0, 18.0; mu[i_kp], sd[i_kp] = 1.9, 1.2
+    B, H = 3, len(HSTEPS)
+    y_dst_nt = torch.full((B, H), -100.0); y_kp = torch.full((B, H), 6.0)
+    out = {"flux_pred": torch.zeros(B, H), "dst_pred": y_dst_nt.clone(), "kp_pred": y_kp.clone()}
+    tg = {"y_flux": torch.zeros(B, H), "y_dst": (y_dst_nt - mu[i_dst]) / sd[i_dst], "y_kp": (y_kp - mu[i_kp]) / sd[i_kp],
+          "y_storm": torch.zeros(B, 1), "storm_flag": torch.zeros(B, 1), "y_persist": torch.zeros(B, H)}
+    fn = PhysicsInformedLoss(LossWeights(horizon_hours=[float(h) for h in HSTEPS]))
+    fn.set_input_scaler(mu, sd, dst_idx=i_dst, kp_idx=i_kp)
+    comps = fn(out, tg, torch.zeros(B, 72, len(SW_COLS)))[1]
+    assert comps["dst"] == pytest.approx(0.0, abs=1e-8) and comps["kp"] == pytest.approx(0.0, abs=1e-8)

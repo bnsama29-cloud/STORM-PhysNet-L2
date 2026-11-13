@@ -1,0 +1,22 @@
+\begin{table}[!t]
+\centering
+\caption{Difference in $\mathrm{PE}_\mathrm{clim}$, STORM-PhysNet with LSTM encoder minus each one-component change (positive: the full LSTM variant is better).}
+\label{tab:paired_lstm}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{lcccc}
+\toprule
+LSTM variant minus & 1\,h & 6\,h & 12\,h & 24\,h \\
+\midrule
+LSTM with persistence residual only & +0.0012$^{*}$ & +0.0025 & +0.0013 & -0.0068 \\
+no gate & +0.0004 & +0.0025 & +0.0031 & -0.0008 \\
+no delay & +0.0002 & +0.0016 & -0.0001 & -0.0034 \\
+no physics loss & +0.0003 & +0.0042 & +0.0050 & +0.0002 \\
+physics loss in physical units & \pend{} & \pend{} & \pend{} & \pend{} \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+
+\par\vspace{0.5ex}{\footnotesize\raggedright Paired $t$-test on the ten seed means; $^{*}$ Holm-adjusted $p<0.05$ over the comparisons in this table.\par}
+\end{table}
