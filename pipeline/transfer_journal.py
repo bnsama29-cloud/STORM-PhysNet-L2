@@ -45,6 +45,8 @@ import numpy as np, pandas as pd, torch
 from types import SimpleNamespace
 from storm_pipeline.data import SW_COLS, SCALED, SEQ, HSTEPS, valid_starts, WindowSet, build_features
 from storm_pipeline import transfer as T
+from classical_baselines import predict_windowset
+CLASSICAL = {"ridge_res", "gbm_res"}
 
 REPO = Path(args.repo).resolve(); sys.path.insert(0, str(REPO))
 from src.data.cdf_reader import read_grasp_directory, read_wind_directory
@@ -167,6 +169,10 @@ for seed in SEEDS:
     for (tg, fk), sets in DATA.items():
         for fam in FAMS:
             key = f"{tg}_{fk}_{fam}"
+            if fam in CLASSICAL:      # ridge / gradient-boosted trees: zero-shot only, from the saved block-A models
+                if "zeroshot" in VARIANTS:
+                    res[f"{key}_zeroshot"] = predict_windowset(Path(args.ckpt_dir) / f"model_{fam}_s{seed}.pkl", sets["test"])
+                continue
             if "zeroshot" in VARIANTS: res[f"{key}_zeroshot"] = T.predict(M.pretrained(fam, seed), sets["test"], DEV)
             for var in [v for v in ("heads", "full") if v in VARIANTS]:
                 m = M.pretrained(fam, seed)

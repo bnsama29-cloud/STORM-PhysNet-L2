@@ -4,6 +4,7 @@
   python make_journal_kaggle.py <commit>              ->  kaggle/journal_account{1,2,3}.py   (campaign 1)
   python make_journal_kaggle.py <commit> --campaign 2 ->  kaggle/journal2_account{1,2}.py   (LSTM-encoder attribution)
   python make_journal_kaggle.py <commit> --campaign 3 ->  kaggle/journal3_account{1,2,3}.py (final: campaign 2 + physfix)
+  python make_journal_kaggle.py <commit> --campaign 4 ->  kaggle/journal4_account1.py         (residual-LSTM width)
 
 Each account trains a group of model families on all three test blocks (A, B, C; 10 seeds; horizons 1, 6, 12, 24 h)
 with the noise and driver probes, then uses its block-A checkpoints for cross-satellite transfer to GOES-16, GOES-18
@@ -28,6 +29,10 @@ CAMPAIGN3 = {   # final campaign: campaign 2 (if not yet run) + the physics loss
     1: ("lstm_res,storm_lstm_no_gate", "lstm_res"),
     2: ("storm_lstm_no_delay,storm_lstm_no_physics", ""),
     3: ("storm_physfix,storm_lstm_physfix", "storm_physfix,storm_lstm_physfix"),
+}
+CAMPAIGN4 = {   # width sensitivity of the residual LSTM (the recommended model); account 2 runs the classical baseline
+    1: ("lstm_res_w64,lstm_res_w256", ""),
+    2: ("gbm_res", "CLASSICAL"),
 }
 
 TEMPLATE = r'''# STORM-PhysNet journal campaign __CAMP__, account __ACC__: families __FAMS__
@@ -120,14 +125,59 @@ print("ALL WORK DONE: send", name) if all(done) else print("NOT FINISHED: add th
 '''
 
 
+CLASSICAL_TEMPLATE = r'''# STORM-PhysNet journal campaign 4, account __ACC__: classical baseline (gradient-boosted trees, LightGBM)
+# Blocks A, B and C, ten seeds, the same test windows and robustness probes as the deep models. CPU only.
+# HOW TO USE: Kaggle -> Create -> New Notebook -> paste this whole file into the first cell.
+# Settings (right sidebar): Accelerator = None (CPU is enough; GPU T4 x2 also works), Internet = ON.
+# Then Save Version -> Save & Run All (Commit). Expected time: about __HOURS__ hours.
+# The last log line says "ALL WORK DONE" (download __ZIP__ and send it) or "NOT FINISHED".
+# TO CONTINUE ANOTHER DAY: Add Input -> Notebook Output Files -> this notebook -> Save Version -> Save & Run All.
+SESSION_HOURS = 10
+
+import os, subprocess, shutil, glob, time, zipfile
+T0 = time.time()
+def sh(c): r = subprocess.run(c, shell=True, capture_output=True, text=True); print((r.stdout + r.stderr)[-1500:]); return r
+sh("pip -q install cdflib lightgbm==4.7.0 2>&1 | tail -1")
+REPO = "/kaggle/working/STORM-PhysNet-L2"
+if not os.path.exists(REPO):
+    sh("cd /kaggle/working && git clone -q __REPO_URL__ STORM-PhysNet-L2")
+sh(f"cd {REPO} && git fetch -q origin && git checkout -q __COMMIT__")
+assert sh(f"cd {REPO} && git rev-parse HEAD").stdout.strip() == "__COMMIT__", "wrong code version"
+PIPE = REPO + "/pipeline"; W = "/kaggle/working"; print("CPUs:", os.cpu_count())
+for name in ("j2_A", "j2_B", "j2_C"):
+    for src in glob.glob(f"/kaggle/input/**/{name}", recursive=True):
+        shutil.copytree(src, f"{W}/{name}", dirs_exist_ok=True); print("resumed", name, "from", src)
+for f in glob.glob(f"{W}/*/*.tmp.npz"): os.remove(f)
+
+def n_preds(b): return len(glob.glob(f"{W}/j2_{b}/preds_{b}_gbm_res_s*.npz"))
+for b in ("A", "B", "C"):
+    if n_preds(b) >= 10: print(f"block {b}: done"); continue
+    left = SESSION_HOURS - (time.time() - T0) / 3600 - 0.3
+    if left <= 0: break
+    r = subprocess.run(f"cd {PIPE} && python -u classical_baselines.py --repo {REPO} --block {b} --out {W}/j2_{b} "
+                       f"--horizons 1,6,12,24 --seeds 42-51 --families gbm_res --stop_after_hours {left:.2f}",
+                       shell=True, capture_output=True, text=True)
+    print((r.stdout + r.stderr)[-3000:]); assert r.returncode == 0, "classical_baselines.py failed: read the lines above"
+    print(f"block {b}: {n_preds(b)} of 10 seeds")
+
+name = f"{W}/__ZIP__"
+with zipfile.ZipFile(name, "w", zipfile.ZIP_DEFLATED) as zf:
+    for d in ("j2_A", "j2_B", "j2_C"):
+        for f in glob.glob(f"{W}/{d}/*"):
+            if os.path.isfile(f) and ".tmp." not in f: zf.write(f, os.path.relpath(f, W))
+print(round(os.path.getsize(name) / 1e6, 1), "MB ->", name, f"| session time {(time.time() - T0) / 3600:.1f} h")
+print("ALL WORK DONE: send", name) if all(n_preds(b) >= 10 for b in "ABC") else print("NOT FINISHED: add this notebook's output as an Input and Save & Run All again.")
+'''
+
+
 def main(commit, campaign=1):
     out = Path(__file__).resolve().parent / "kaggle"; out.mkdir(exist_ok=True)
-    groups = {1: CAMPAIGN1, 2: CAMPAIGN2, 3: CAMPAIGN3}[campaign]
-    hours = {1: {1: 7, 2: 7, 3: 5}, 2: {1: 4, 2: 3}, 3: {1: 4, 2: 3, 3: 7}}[campaign]
+    groups = {1: CAMPAIGN1, 2: CAMPAIGN2, 3: CAMPAIGN3, 4: CAMPAIGN4}[campaign]
+    hours = {1: {1: 7, 2: 7, 3: 5}, 2: {1: 4, 2: 3}, 3: {1: 4, 2: 3, 3: 7}, 4: {1: 3, 2: 4}}[campaign]
     for acc, (fams, tfams) in groups.items():
         stem = f"journal_account{acc}" if campaign == 1 else f"journal{campaign}_account{acc}"
         zipname = f"journal_l2_account{acc}.zip" if campaign == 1 else f"journal_l2_c{campaign}_account{acc}.zip"
-        s = (TEMPLATE.replace("__ACC__", str(acc)).replace("__FAMS__", fams).replace("__TFAMS__", tfams)
+        s = ((CLASSICAL_TEMPLATE if tfams == "CLASSICAL" else TEMPLATE).replace("__ACC__", str(acc)).replace("__FAMS__", fams).replace("__TFAMS__", tfams)
              .replace("__COMMIT__", commit).replace("__REPO_URL__", REPO_URL).replace("__HOURS__", str(hours[acc]))
              .replace("__CAMP__", str(campaign)).replace("__ZIP__", zipname))
         left = [k for k in ("__ACC__", "__FAMS__", "__TFAMS__", "__COMMIT__", "__REPO_URL__", "__HOURS__", "__CAMP__", "__ZIP__") if k in s]

@@ -11,7 +11,9 @@ from pathlib import Path
 
 ORDER = [  # (family, label, group)
     ("persistence", "Persistence", "Reference"),
-    ("lstm", "LSTM", "Baselines"), ("lstm_res", "LSTM, residual", "Baselines"), ("mlp", "MLP", "Baselines"),
+    ("ridge_res", "Ridge regression, residual", "Classical baselines"), ("gbm_res", "Gradient-boosted trees, residual", "Classical baselines"),
+    ("lstm", "LSTM", "Baselines"), ("lstm_res", "LSTM, residual", "Baselines"),
+    ("lstm_res_w64", "\\quad width 64", "Baselines"), ("lstm_res_w256", "\\quad width 256", "Baselines"), ("mlp", "MLP", "Baselines"),
     ("cnn", "CNN", "Baselines"),
     ("transformer", "Transformer (default size)", "Transformer controls"),
     ("transformer_matched", "Transformer, matched", "Transformer controls"),
@@ -24,7 +26,7 @@ ORDER = [  # (family, label, group)
     ("storm_no_delay", "\\quad no delay", "STORM-PhysNet and variants"),
     ("storm_no_gate", "\\quad no gate", "STORM-PhysNet and variants"),
     ("storm_no_physics", "\\quad no physics loss", "STORM-PhysNet and variants"),
-    ("storm_physfix", "\\quad physics loss in physical units", "STORM-PhysNet and variants"),
+    ("storm_physfix", "\\quad physical-unit loss", "STORM-PhysNet and variants"),
     ("storm_cathode", "\\quad cathode--anode gate", "STORM-PhysNet and variants"),
     ("storm_cathode_spec", "\\quad cathode--anode + spectral head", "STORM-PhysNet and variants"),
     ("storm_radiotrophic", "\\quad radiotrophic gate", "STORM-PhysNet and variants"),
@@ -32,10 +34,11 @@ ORDER = [  # (family, label, group)
     ("storm_lstm_no_gate", "\\quad LSTM encoder, no gate", "STORM-PhysNet and variants"),
     ("storm_lstm_no_delay", "\\quad LSTM encoder, no delay", "STORM-PhysNet and variants"),
     ("storm_lstm_no_physics", "\\quad LSTM encoder, no physics loss", "STORM-PhysNet and variants"),
-    ("storm_lstm_physfix", "\\quad LSTM encoder, physics loss in physical units", "STORM-PhysNet and variants"),
+    ("storm_lstm_physfix", "\\quad LSTM encoder, physical-unit loss", "STORM-PhysNet and variants"),
     ("storm_magnetopause", "\\quad + magnetopause features", "STORM-PhysNet and variants"),
 ]
 LABEL = {f: l.replace("\\quad ", "STORM-PhysNet, " if f.startswith("storm_") else "Residual TF ") for f, l, _ in ORDER}
+LABEL.update({"lstm_res_w64": "LSTM, residual, width 64", "lstm_res_w256": "LSTM, residual, width 256"})
 
 
 def f3(v): return "--" if v is None or v != v else f"{v:.3f}"
@@ -102,7 +105,7 @@ def main():
     for r in N.get("paired_vs_lstm", []): PL.setdefault(r["family"], {})[r["h"]] = r
     lstm_rows = [("lstm_res", "LSTM with persistence residual only"), ("storm_lstm_no_gate", "no gate"),
                  ("storm_lstm_no_delay", "no delay"), ("storm_lstm_no_physics", "no physics loss"),
-                 ("storm_lstm_physfix", "physics loss in physical units")]
+                 ("storm_lstm_physfix", "physical-unit loss")]
     body = [f"{lab} & " + (" & ".join(cell(PL[f][h]) for h in H) if f in PL else " & ".join(["\\pend{}"] * len(H))) + " \\\\"
             for f, lab in lstm_rows]
     (out / "tab_paired_lstm.tex").write_text(tabular(cols, f"LSTM variant minus & {hh}", body,

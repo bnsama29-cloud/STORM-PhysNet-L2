@@ -16,7 +16,7 @@ CONFERENCE = ["lstm", "transformer_matched", "tf_ffn_res", "tf_flux_only", "stor
 JOURNAL = ["transformer", "tf_ffn256", "mlp", "cnn", "storm_no_physics", "storm_cathode", "storm_cathode_spec",
            "storm_radiotrophic", "storm_lstm_backbone", "storm_magnetopause",
            "lstm_res", "storm_lstm_no_gate", "storm_lstm_no_delay", "storm_lstm_no_physics",
-           "storm_physfix", "storm_lstm_physfix"]
+           "storm_physfix", "storm_lstm_physfix", "lstm_res_w64", "lstm_res_w256"]
 
 
 def make(fam, tmp_path, scaler=None):

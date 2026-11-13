@@ -27,9 +27,10 @@ LABEL = {"storm_bz": "STORM-PhysNet", "storm_lstm_backbone": "STORM-PhysNet (LST
          "tf_res_fixed_ma": "Residual TF + fixed avg.", "storm_fixed_ma": "fixed average", "storm_no_delay": "no delay",
          "storm_no_gate": "no gate", "storm_no_physics": "no physics loss", "storm_cathode": "cathode-anode gate",
          "storm_cathode_spec": "cathode-anode + spectral", "storm_radiotrophic": "radiotrophic gate",
-         "storm_magnetopause": "+ magnetopause", "storm_physfix": "physics loss in physical units",
-         "lstm_res": "LSTM, residual", "storm_lstm_no_gate": "no gate", "storm_lstm_no_delay": "no delay",
-         "storm_lstm_no_physics": "no physics loss", "storm_lstm_physfix": "physics loss in physical units"}
+         "storm_magnetopause": "+ magnetopause", "storm_physfix": "physical-unit loss",
+         "lstm_res": "LSTM, residual", "lstm_res_w64": "LSTM, residual, width 64", "lstm_res_w256": "LSTM, residual, width 256",
+         "ridge_res": "Ridge, residual", "gbm_res": "Gradient-boosted trees", "storm_lstm_no_gate": "no gate", "storm_lstm_no_delay": "no delay",
+         "storm_lstm_no_physics": "no physics loss", "storm_lstm_physfix": "physical-unit loss"}
 COL = {  # Okabe-Ito colour-blind-safe palette (line styles also differ where colours repeat)
     "storm_bz": "#D55E00", "storm_lstm_backbone": "#E69F00", "tf_ffn_res": "#0072B2", "transformer_matched": "#CC79A7",
     "lstm": "#009E73", "mlp": "#56B4E9", "tf_flux_only": "#F0E442", "persistence": "#555555", "tf_res_fixed_ma": "#0072B2",

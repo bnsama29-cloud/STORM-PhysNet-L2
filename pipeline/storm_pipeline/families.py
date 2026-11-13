@@ -32,6 +32,9 @@ SPEC = {
     "storm_lstm_backbone": dict(model_type="storm_physnet", ablation="none", match=False, model=dict(backbone="lstm")),
     # attribution of the LSTM-encoder variant (second journal campaign)
     "lstm_res": dict(model_type="lstm", ablation="none", match=False),                 # built separately (ResLSTM)
+    # width sensitivity of the residual LSTM (final campaign); built separately
+    "lstm_res_w64": dict(model_type="lstm", ablation="none", match=False),
+    "lstm_res_w256": dict(model_type="lstm", ablation="none", match=False),
     "storm_lstm_no_gate": dict(model_type="storm_physnet", ablation="no_bz_gate", match=False, model=dict(backbone="lstm")),
     "storm_lstm_no_delay": dict(model_type="storm_physnet", ablation="no_delay", match=False, model=dict(backbone="lstm")),
     "storm_lstm_no_physics": dict(model_type="storm_physnet", ablation="no_physics", match=False, model=dict(backbone="lstm")),
@@ -75,6 +78,8 @@ def build(family, trainer, n_sw, device, scaler=None):
         m = trainer.build_model(n_sw); m.prop_delay = FixedTwoPointAverage().to(device); return m
     if family == "lstm_res":
         return ResLSTM(n_sw, n_h=n_h).to(device)
+    if family in ("lstm_res_w64", "lstm_res_w256"):
+        return ResLSTM(n_sw, d_model=int(family.rsplit("_w", 1)[1]), n_h=n_h).to(device)
     if family == "tf_ffn256":
         return FFNResTransformer(n_sw, n_h=n_h, residual=False).to(device)
     m = trainer.build_model(n_sw).to(device)
