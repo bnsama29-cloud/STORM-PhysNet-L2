@@ -14,7 +14,8 @@ from src.training.physics_loss import PhysicsInformedLoss, LossWeights  # noqa: 
 CONFERENCE = ["lstm", "transformer_matched", "tf_ffn_res", "tf_flux_only", "storm_bz", "storm_no_delay", "storm_no_gate",
               "storm_fixed_ma", "tf_res_fixed_ma"]
 JOURNAL = ["transformer", "tf_ffn256", "mlp", "cnn", "storm_no_physics", "storm_cathode", "storm_cathode_spec",
-           "storm_radiotrophic", "storm_lstm_backbone", "storm_magnetopause"]
+           "storm_radiotrophic", "storm_lstm_backbone", "storm_magnetopause",
+           "lstm_res", "storm_lstm_no_gate", "storm_lstm_no_delay", "storm_lstm_no_physics"]
 
 
 def make(fam, tmp_path, scaler=None):
@@ -98,3 +99,20 @@ def test_freeze_encoder_leaves_heads_trainable(fam, tmp_path):
     assert any(n.startswith("heads.") for n in trainable)
     assert any(n.startswith(("transformer.", "lstm.", "ssm.", "itransformer.")) for n in frozen), fam
     assert not any(n.startswith(("transformer.", "lstm.", "ssm.", "itransformer.", "prop_delay.")) for n in trainable), fam
+
+
+def test_lstm_attribution_variants(tmp_path):
+    """Each LSTM-encoder ablation keeps the LSTM encoder and removes exactly one component."""
+    full = make("storm_lstm_backbone", tmp_path)
+    ng, nd = make("storm_lstm_no_gate", tmp_path), make("storm_lstm_no_delay", tmp_path)
+    assert full.backbone == ng.backbone == nd.backbone == "lstm"
+    assert (full.ablation, ng.ablation, nd.ablation) == ("none", "no_bz_gate", "no_delay")
+    assert make("storm_lstm_no_physics", tmp_path).ablation == "no_physics"
+    # the gate is bypassed in forward(): its parameters get no gradient
+    x = torch.randn(4, 72, len(SW_COLS))
+    ng(x_sw=x, x_flux=torch.randn(4, 72, 1), y_persist=torch.zeros(4, len(HSTEPS)))["flux_pred"].sum().backward()
+    assert all(p.grad is None or p.grad.abs().sum() == 0 for p in ng.bz_gate.parameters())
+    r = make("lstm_res", tmp_path)
+    assert type(r).__name__ == "ResLSTM" and r.residual
+    o = r(x_sw=torch.zeros(2, 72, len(SW_COLS)), x_flux=torch.zeros(2, 72, 1), y_persist=torch.full((2, len(HSTEPS)), 3.0))
+    assert o["flux_pred"].shape == (2, len(HSTEPS))

@@ -39,3 +39,11 @@ def test_crps_ensemble_reduces_to_abs_error_for_one_member():
 def test_holm_matches_hand_calculation():
     adj = holm([0.01, 0.04, 0.03])
     assert adj.tolist() == pytest.approx([0.03, 0.06, 0.06])
+
+
+def test_gaps_breaks_lines_only_at_long_jumps():
+    import pandas as pd
+    from journal_figures import gaps
+    t = pd.to_datetime(["2024-01-01 00:00", "2024-01-01 01:00", "2024-01-01 05:00", "2024-01-01 06:00"])
+    tt, (y,) = gaps(t, np.array([1.0, 2.0, 3.0, 4.0]))
+    assert len(tt) == 5 and np.isnan(y[2]) and y[[0, 1, 3, 4]].tolist() == [1.0, 2.0, 3.0, 4.0]
