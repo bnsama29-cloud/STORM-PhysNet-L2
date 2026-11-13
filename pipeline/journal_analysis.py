@@ -71,7 +71,11 @@ def load_blocks(dirs):
     meta, P = {}, defaultdict(lambda: defaultdict(dict))         # P[block][family][seed] = npz
     for d in dirs:
         for mf in glob.glob(f"{d}/meta_*.npz"):
-            b = re.search(r"meta_(\w)\.npz", mf).group(1); meta.setdefault(b, dict(np.load(mf, allow_pickle=True)))
+            b = re.search(r"meta_(\w)\.npz", mf).group(1); new = dict(np.load(mf, allow_pickle=True))
+            if b in meta:   # runs from different campaigns must share the same test windows, or the paired tests are void
+                assert meta[b]["y"].shape == new["y"].shape and np.allclose(meta[b]["y"], new["y"]), \
+                    f"{mf}: test targets differ from an earlier meta_{b}.npz (different code or data version?)"
+            meta.setdefault(b, new)
         for f in glob.glob(f"{d}/preds_*_s*.npz"):
             m = re.search(r"preds_(\w)_(.+)_s(\d+)\.npz", os.path.basename(f))
             P[m.group(1)][m.group(2)][int(m.group(3))] = np.load(f)
@@ -188,7 +192,8 @@ def transfer(dirs):
         for mf in glob.glob(f"{d}/transfer_meta*.npz"):
             tag = re.search(r"transfer_meta(.*)\.npz", os.path.basename(mf)).group(1)
             m = np.load(mf); preds = sorted(glob.glob(f"{d}/transfer_preds{tag}_s*.npz"))
-            if not preds: continue
+            if len(preds) != 10:   # an unfinished run would bias the fold means; report and skip it
+                print(f"WARNING {mf}: {len(preds)} seed files, expected 10 -- skipped"); continue
             Ps = [np.load(p) for p in preds]
             folds = sorted({k[:-2] for k in m.files if k.endswith("_y")})
             for key in sorted(Ps[0].files):

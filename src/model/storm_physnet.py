@@ -26,9 +26,6 @@ from src.model.bz_gate               import BzPhysicsGate
 from src.model.analogy_gates         import RadiotrophicGate, CathodeAnodeGate
 from src.model.forecasting_heads     import MultiHorizonHeads
 from src.model.spectral_head         import SpectralParamHead, spectral_shape_regularizer
-from src.model.itransformer_encoder  import iTransformerEncoder
-from src.model.ssm_encoder           import SSMEncoder
-from src.model.cross_modal_attention import CrossModalAttention
 from src.model.magnetopause_geometry import MagnetopauseGeometryFeatures # Optional; disabled in paper runs
 
 
@@ -82,7 +79,7 @@ class STORMPhysNet(nn.Module):
         bz_feature_idx:       int   = 1,
         bz_dur_idx:           int   = 5,
         ablation:             str   = "none",
-        backbone:             str   = "transformer",  # "transformer" | "hybrid"
+        backbone:             str   = "transformer",  # "transformer" | "lstm"
         gate_type:            str   = "bz",  # "bz" | "radiotrophic" | "cathode_anode"
         use_spectral_head:    bool  = False,  # additive spectral-parameterization head
         use_magnetopause:     bool  = False,  # Shue (1998) magnetopause compression features
@@ -124,42 +121,12 @@ class STORMPhysNet(nn.Module):
         #   and attends over TIME. Simple, and what the reported baseline
         #   numbers were produced with.
         #
-        # "hybrid" (previously written but never wired into forward()): SW and
-        #   flux are encoded separately by architectures matched to their
-        #   physics, then fused explicitly:
-        #     - iTransformer attends over FEATURES (which SW variables
-        #       co-vary), suited to "which drivers matter" questions.
-        #     - SSM encodes flux history's slow exponential-decay dynamics,
-        #       which a fixed-length attention window handles less naturally.
-        #     - CrossModalAttention lets the flux state query the SW features
-        #       ("given current flux, which SW pattern is relevant"), instead
-        #       of just concatenating the two streams as the plain
-        #       transformer does.
-        #   This is a materially different, larger, and less-tested path —
-        #   train/ablate it explicitly rather than assuming it's better.
-        if backbone == "hybrid":
-            self.itransformer = iTransformerEncoder(
-                seq_len=seq_len,
-                n_features=n_sw_features,
-                d_model=d_model,
-                n_heads=n_heads,
-                n_layers=n_transformer_layers,
-                d_ff=d_ff,
-                dropout=dropout,
-            )
-            self.ssm = SSMEncoder(
-                d_model=d_model,
-                d_state=d_state,
-                n_layers=n_ssm_layers,
-                dropout=dropout,
-            )
-            self.cross_modal = CrossModalAttention(
-                d_model=d_model,
-                n_heads=n_heads,
-                dropout=dropout,
-            )
-            self.transformer = None
-        elif backbone == "lstm":
+        # "lstm": a two-layer LSTM of the same width over the same embedded sequence (journal variant).
+        # (A "hybrid" iTransformer/SSM/cross-attention backbone existed in early code; it was the slowest and
+        # weakest model and has been removed.)
+        if backbone not in ("transformer", "lstm"):
+            raise ValueError(f"backbone must be 'transformer' or 'lstm', got {backbone!r} (the hybrid backbone was removed)")
+        if backbone == "lstm":
             self.lstm = nn.LSTM(
                 input_size=d_model,
                 hidden_size=d_model,
@@ -283,43 +250,24 @@ class STORMPhysNet(nn.Module):
             x_sw_delayed, tau = self.prop_delay(x_sw)
 
         # ── 2. Feature Fusion / Encoding ──────────────────────────────────────
-        if self.backbone == "hybrid":
-            # Separate SW and flux encoding, fused via cross-modal attention
-            # instead of early concatenation.
-            flux_repr = self.ssm(x_flux)                            # [B, d_model]
+        # Concatenate delayed solar wind and flux along feature dimension
+        x = torch.cat([x_sw_delayed, x_flux], dim=-1)         # [B, T, F+1]
 
-            # Run iTransformer's embedding + layers ONCE to get per-feature
-            # tokens [B, F, d_model]; pool them ourselves for sw_pooled rather
-            # than calling self.itransformer(...) a second time (which would
-            # redundantly re-run the same embedding+layers).
-            sw_tokens = self.itransformer.embedding(x_sw_delayed)   # [B, F, d_model]
-            sw_attn_weights = []
-            for layer in self.itransformer.layers:
-                sw_tokens, aw = layer(sw_tokens)
-                sw_attn_weights.append(aw)
-            self._last_attn_weights = sw_attn_weights
+        # Project to d_model
+        x = self.input_proj(x)                                # [B, T, d_model]
 
-            h, cross_weights = self.cross_modal(flux_repr, sw_tokens)  # [B, d_model]
-            self._last_cross_weights = cross_weights
+        # Add positional embedding
+        x = x + self.pos_emb[:, :x.size(1), :]
+        x = self.emb_dropout(x)
+
+        # ── 3. Temporal Transformer/LSTM Encoding ─────────────────────────────
+        if hasattr(self, 'lstm') and self.lstm is not None:
+            x, _ = self.lstm(x)                                   # [B, T, d_model]
         else:
-            # Concatenate delayed solar wind and flux along feature dimension
-            x = torch.cat([x_sw_delayed, x_flux], dim=-1)         # [B, T, F+1]
+            x = self.transformer(x)                               # [B, T, d_model]
 
-            # Project to d_model
-            x = self.input_proj(x)                                # [B, T, d_model]
-
-            # Add positional embedding
-            x = x + self.pos_emb[:, :x.size(1), :]
-            x = self.emb_dropout(x)
-
-            # ── 3. Temporal Transformer/LSTM Encoding ─────────────────────────────
-            if hasattr(self, 'lstm') and self.lstm is not None:
-                x, _ = self.lstm(x)                                   # [B, T, d_model]
-            else:
-                x = self.transformer(x)                               # [B, T, d_model]
-
-            # Take the representation at the final time step
-            h = x[:, -1, :]                                       # [B, d_model]
+        # Take the representation at the final time step
+        h = x[:, -1, :]                                       # [B, d_model]
 
         # ── 4b. Optional Magnetopause Geometry — additive feature injection ──
         # Adds Shue (1998) compression state (r0, alpha, GEO/r0) to the
@@ -372,9 +320,7 @@ class STORMPhysNet(nn.Module):
     def freeze_encoder(self):
         """Freeze all encoder parameters for GOES→GRASP transfer learning."""
         modules = [self.prop_delay, self.bz_gate]
-        if self.backbone == "hybrid":
-            modules += [self.itransformer, self.ssm, self.cross_modal]
-        elif self.backbone == "lstm":
+        if self.backbone == "lstm":
             modules += [self.input_proj, self.lstm]
         else:
             modules += [self.input_proj, self.transformer]

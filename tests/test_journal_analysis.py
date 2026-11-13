@@ -59,3 +59,14 @@ def test_paired_against_lstm_reference_skips_missing_families():
     assert [r["family"] for r in rows] == ["storm_lstm_no_gate", "storm_lstm_no_gate"]
     assert rows[0]["diff"] == pytest.approx(0.05)
     assert paired({}, "storm_lstm_backbone", ["lstm_res"], [1]) == []
+
+
+def test_load_blocks_rejects_mismatched_test_windows(tmp_path):
+    from journal_analysis import load_blocks
+    for d, y in (("a", [[1.0, 2.0]]), ("b", [[1.0, 2.5]])):
+        (tmp_path / d).mkdir(); np.savez(tmp_path / d / "meta_A.npz", y=np.array(y))
+    with pytest.raises(AssertionError, match="test targets differ"):
+        load_blocks([tmp_path / "a", tmp_path / "b"])
+    (tmp_path / "c").mkdir(); np.savez(tmp_path / "c" / "meta_A.npz", y=np.array([[1.0, 2.0]]))
+    meta, _ = load_blocks([tmp_path / "a", tmp_path / "c"])
+    assert meta["A"]["y"].tolist() == [[1.0, 2.0]]
