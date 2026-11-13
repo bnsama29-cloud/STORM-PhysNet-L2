@@ -11,7 +11,8 @@ from pathlib import Path
 
 ORDER = [  # (family, label, group)
     ("persistence", "Persistence", "Reference"),
-    ("lstm", "LSTM", "Baselines"), ("mlp", "MLP", "Baselines"), ("cnn", "CNN", "Baselines"),
+    ("lstm", "LSTM", "Baselines"), ("lstm_res", "LSTM, residual", "Baselines"), ("mlp", "MLP", "Baselines"),
+    ("cnn", "CNN", "Baselines"),
     ("transformer", "Transformer (default size)", "Transformer controls"),
     ("transformer_matched", "Transformer, matched", "Transformer controls"),
     ("tf_ffn256", "Transformer, FFN 256", "Transformer controls"),
@@ -27,6 +28,9 @@ ORDER = [  # (family, label, group)
     ("storm_cathode_spec", "\\quad cathode--anode + spectral head", "STORM-PhysNet and variants"),
     ("storm_radiotrophic", "\\quad radiotrophic gate", "STORM-PhysNet and variants"),
     ("storm_lstm_backbone", "\\quad LSTM encoder", "STORM-PhysNet and variants"),
+    ("storm_lstm_no_gate", "\\quad LSTM encoder, no gate", "STORM-PhysNet and variants"),
+    ("storm_lstm_no_delay", "\\quad LSTM encoder, no delay", "STORM-PhysNet and variants"),
+    ("storm_lstm_no_physics", "\\quad LSTM encoder, no physics loss", "STORM-PhysNet and variants"),
     ("storm_magnetopause", "\\quad + magnetopause features", "STORM-PhysNet and variants"),
 ]
 LABEL = {f: l.replace("\\quad ", "STORM-PhysNet, " if f.startswith("storm_") else "Residual TF ") for f, l, _ in ORDER}
@@ -66,7 +70,8 @@ def main():
         return N["main"][f]["pe_clim"] if f in have else None
     (out / "tab_main.tex").write_text(tabular(cols, f"Model & {hh}", rows(N, main_v, H),
         "GOES-15 test skill, $\\mathrm{PE}_\\mathrm{clim}$: mean over ten seeds and the three test blocks.", "tab:main",
-        "Seed standard deviations are below 0.01 for every learned model at every horizon (Fig.~\\ref{fig:horizon}). "
+        "Seed standard deviations are at most 0.011 for the other controls without residual, 0.018 for the residual Transformers, "
+        "0.027 for the STORM-PhysNet variants with a Transformer encoder, 0.005 with the LSTM encoder, and 0.053 for the CNN. "
         "\\pend{} marks runs still in progress.", star=False))
 
     def blockA(f):
@@ -88,7 +93,7 @@ def main():
         body.append(f"{LABEL[f]} & " + (" & ".join(cell(P[f][h]) for h in H) if f in P else " & ".join(["\\pend{}"] * len(H))) + " \\\\")
     (out / "tab_paired.tex").write_text(tabular(cols, f"STORM-PhysNet minus & {hh}", body,
         "Difference in $\\mathrm{PE}_\\mathrm{clim}$, STORM-PhysNet minus each model (positive: STORM-PhysNet better).", "tab:paired",
-        "Paired $t$-test on the ten seed means (each averaged over blocks); $^{*}$ Holm-adjusted $p<0.05$ over all comparisons in the table."))
+        "Paired $t$-test on the ten seed means (each averaged over blocks); $^{*}$ Holm-adjusted $p<0.05$ over all comparisons in the table.", star=True))
 
     # storm-time RMSE and alert HSS
     def sr(f): return N["storm_rmse"].get(f) if f in N["storm_rmse"] else None
@@ -130,7 +135,7 @@ def main():
         else: body.append(f"{lab} & " + " & ".join(["\\pend{}"] * len(H)) + " \\\\")
     (out / "tab_calib.tex").write_text(tabular(cols, f"Model & {hh}", body,
         "Coverage of the predicted $1\\sigma$ / $1.96\\sigma$ intervals (nominal 0.68 / 0.95).", "tab:calib",
-        "Fraction of test targets inside $\\hat y\\pm\\hat\\sigma$ and $\\hat y\\pm1.96\\hat\\sigma$, averaged over seeds and blocks."))
+        "Fraction of test targets inside $\\hat y\\pm\\hat\\sigma$ and $\\hat y\\pm1.96\\hat\\sigma$, averaged over seeds and blocks.", star=True))
 
     # transfer
     names = {"goes16": "GOES-16", "goes18": "GOES-18", "grasp": "GSAT-19 GRASP"}
