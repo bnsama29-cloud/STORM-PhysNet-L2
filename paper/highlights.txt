@@ -3,5 +3,5 @@ Highlights
 - Over twenty forecast models compared on three test periods with ten seeds each.
 - Persistence residual explains 1 h skill; solar-wind drivers explain 6–24 h skill.
 - Physics-inspired delay and gates do not change accuracy significantly.
-- A plain LSTM forecasting change from persistence matches the physics-guided model.
+- A plain residual LSTM matches the physics-guided model and resists input noise.
 - Forecasting changes, not levels, survives a factor-of-two satellite offset.

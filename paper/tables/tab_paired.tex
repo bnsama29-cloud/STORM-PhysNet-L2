@@ -9,8 +9,12 @@
 \toprule
 STORM-PhysNet minus & 1\,h & 6\,h & 12\,h & 24\,h \\
 \midrule
+Ridge regression, residual & -0.0041$^{*}$ & -0.0336 & -0.0454$^{*}$ & -0.0140$^{*}$ \\
+Gradient-boosted trees, residual & \pend{} & \pend{} & \pend{} & \pend{} \\
 LSTM & +0.0424$^{*}$ & -0.0187 & -0.0420$^{*}$ & +0.0054 \\
 LSTM, residual & -0.0023 & -0.0352 & -0.0404$^{*}$ & -0.0008 \\
+LSTM, residual, width 64 & \pend{} & \pend{} & \pend{} & \pend{} \\
+LSTM, residual, width 256 & \pend{} & \pend{} & \pend{} & \pend{} \\
 MLP & +0.0393$^{*}$ & -0.0277 & -0.0471$^{*}$ & +0.0127$^{*}$ \\
 CNN & +0.2056$^{*}$ & +0.2058$^{*}$ & +0.2015$^{*}$ & +0.2118$^{*}$ \\
 Transformer (default size) & +0.0132$^{*}$ & -0.0363 & -0.0531$^{*}$ & -0.0023 \\
@@ -23,15 +27,15 @@ STORM-PhysNet, fixed average & +0.0005 & +0.0027 & +0.0038 & -0.0018 \\
 STORM-PhysNet, no delay & +0.0006 & +0.0000 & +0.0004 & -0.0045 \\
 STORM-PhysNet, no gate & -0.0006 & -0.0035 & -0.0056 & -0.0010 \\
 STORM-PhysNet, no physics loss & -0.0011 & -0.0102 & -0.0100 & +0.0014 \\
-STORM-PhysNet, physics loss in physical units & \pend{} & \pend{} & \pend{} & \pend{} \\
+STORM-PhysNet, physical-unit loss & \pend{} & \pend{} & \pend{} & \pend{} \\
 STORM-PhysNet, cathode--anode gate & -0.0006 & -0.0104 & -0.0068 & +0.0007 \\
 STORM-PhysNet, cathode--anode + spectral head & +0.0004 & -0.0021 & -0.0040 & -0.0041 \\
 STORM-PhysNet, radiotrophic gate & +0.0003 & +0.0067 & +0.0029 & -0.0015 \\
-STORM-PhysNet, LSTM encoder & -0.0036 & -0.0378$^{*}$ & -0.0417$^{*}$ & +0.0059 \\
+STORM-PhysNet, LSTM encoder & -0.0036 & -0.0378 & -0.0417$^{*}$ & +0.0059 \\
 STORM-PhysNet, LSTM encoder, no gate & -0.0032 & -0.0352$^{*}$ & -0.0386$^{*}$ & +0.0051 \\
 STORM-PhysNet, LSTM encoder, no delay & -0.0033 & -0.0362$^{*}$ & -0.0419$^{*}$ & +0.0025 \\
 STORM-PhysNet, LSTM encoder, no physics loss & -0.0032 & -0.0336 & -0.0367$^{*}$ & +0.0061 \\
-STORM-PhysNet, LSTM encoder, physics loss in physical units & \pend{} & \pend{} & \pend{} & \pend{} \\
+STORM-PhysNet, LSTM encoder, physical-unit loss & \pend{} & \pend{} & \pend{} & \pend{} \\
 STORM-PhysNet, + magnetopause features & -0.0009 & -0.0074 & -0.0064 & +0.0009 \\
 \bottomrule
 \end{tabular}

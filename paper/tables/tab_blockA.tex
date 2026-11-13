@@ -9,9 +9,14 @@
 \toprule
 Model & 1\,h & 6\,h & 12\,h & 24\,h \\
 \midrule
+\multicolumn{5}{l}{\textit{Classical baselines}} \\
+Ridge regression, residual & 0.976 & 0.835 & 0.796 & 0.767 \\
+Gradient-boosted trees, residual & \pend{} & \pend{} & \pend{} & \pend{} \\
 \multicolumn{5}{l}{\textit{Baselines}} \\
 LSTM & 0.930 & 0.824 & 0.791 & 0.740 \\
 LSTM, residual & 0.975 & 0.827 & 0.780 & 0.754 \\
+\quad width 64 & \pend{} & \pend{} & \pend{} & \pend{} \\
+\quad width 256 & \pend{} & \pend{} & \pend{} & \pend{} \\
 MLP & 0.932 & 0.831 & 0.794 & 0.733 \\
 CNN & 0.805 & 0.589 & 0.537 & 0.549 \\
 \multicolumn{5}{l}{\textit{Transformer controls}} \\
@@ -27,7 +32,7 @@ STORM-PhysNet & 0.971 & 0.797 & 0.768 & 0.760 \\
 \quad no delay & 0.973 & 0.810 & 0.768 & 0.760 \\
 \quad no gate & 0.971 & 0.786 & 0.752 & 0.757 \\
 \quad no physics loss & 0.973 & 0.808 & 0.778 & 0.761 \\
-\quad physics loss in physical units & \pend{} & \pend{} & \pend{} & \pend{} \\
+\quad physical-unit loss & \pend{} & \pend{} & \pend{} & \pend{} \\
 \quad cathode--anode gate & 0.972 & 0.805 & 0.770 & 0.759 \\
 \quad cathode--anode + spectral head & 0.971 & 0.799 & 0.763 & 0.759 \\
 \quad radiotrophic gate & 0.972 & 0.802 & 0.770 & 0.759 \\
@@ -35,7 +40,7 @@ STORM-PhysNet & 0.971 & 0.797 & 0.768 & 0.760 \\
 \quad LSTM encoder, no gate & 0.976 & 0.830 & 0.783 & 0.750 \\
 \quad LSTM encoder, no delay & 0.976 & 0.827 & 0.783 & 0.750 \\
 \quad LSTM encoder, no physics loss & 0.976 & 0.827 & 0.782 & 0.747 \\
-\quad LSTM encoder, physics loss in physical units & \pend{} & \pend{} & \pend{} & \pend{} \\
+\quad LSTM encoder, physical-unit loss & \pend{} & \pend{} & \pend{} & \pend{} \\
 \quad + magnetopause features & 0.973 & 0.808 & 0.776 & 0.761 \\
 \bottomrule
 \end{tabular}

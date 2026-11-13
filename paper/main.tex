@@ -12,6 +12,10 @@
 \usepackage{adjustbox}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
+\usepackage[section]{placeins}   % floats stay within their section (no tables drifting to the end)
+\renewcommand{\topfraction}{0.9}\renewcommand{\dbltopfraction}{0.9}
+\renewcommand{\floatpagefraction}{0.8}\renewcommand{\dblfloatpagefraction}{0.8}
+\setcounter{topnumber}{3}\setcounter{dbltopnumber}{3}\setcounter{totalnumber}{6}
 \usepackage{xcolor}
 \emergencystretch=2em
 
@@ -47,26 +51,26 @@ Writing -- original draft, Writing -- review \& editing, Visualization}
 \begin{abstract}
 Electrons above 2\,MeV at geostationary orbit charge spacecraft dielectrics, and forecasts are needed also at
 longitudes that no GOES satellite monitors. We compare STORM-PhysNet, a forecast network with a learned
-solar-wind delay, a gate driven by the southward interplanetary magnetic field, outputs relative to
-persistence and a physics-informed loss, with 22 other model families. All are trained on hourly GOES-15 data
-(2011--2020) to forecast 1, 6, 12 and 24\,h ahead, with ten random seeds on three disjoint test periods
-and a protocol that prevents information leakage; differences are tested with paired \(t\)-tests. Predicting
-the change from persistence gives the 1\,h skill, and solar-wind inputs give the 6--24\,h skill. The delay,
-the gate, two alternative gates, a spectral head, magnetopause features and the physics loss, as
-applied to standardised rather than physical inputs, change no score significantly. The encoder matters more:
-with a long short-term memory (LSTM) encoder, STORM-PhysNet reaches prediction efficiencies of 0.975, 0.852,
-0.790 and 0.725 and is among the most robust to noisy and missing solar-wind data, yet a plain LSTM that predicts the
-change from persistence matches it within 0.007 at every lead time and transfers best without retraining to
-GOES-16 and GOES-18. Models that forecast the flux level directly lose their skill on GOES-16,
-whose flux reads a factor of two lower than GOES-15, whereas models that forecast the change keep part of it.
-With local data, fine-tuning brings all models to similar skill on GOES-16, GOES-18 and India's GSAT-19.
+solar-wind delay, a gate driven by the southward interplanetary magnetic field, outputs relative to persistence and
+a physics-informed loss, with 22 neural and two classical models. All forecast 1, 6, 12 and 24\,h ahead from hourly
+GOES-15 data (2011--2020), with ten random seeds on three disjoint test periods, a protocol that prevents
+information leakage and paired \(t\)-tests. Predicting the change from persistence gives the 1\,h skill, and
+solar-wind inputs give the 6--24\,h skill. The delay, the gate, two alternative gates, a spectral head,
+magnetopause features and the physics loss evaluated on standardised inputs change no score significantly. With a
+long short-term memory (LSTM) encoder, STORM-PhysNet reaches prediction efficiencies of 0.975, 0.852, 0.790 and
+0.725, and a plain LSTM predicting the change from persistence matches it within 0.007. Both are among the most
+robust to noisy and missing solar-wind data. A ridge regression on summaries of the same window is as accurate on
+clean inputs and transfers best to GOES-16 and GOES-18, but loses its skill under input noise. Models that forecast
+the flux level directly lose their skill on GOES-16, whose flux reads a factor of two lower than GOES-15, whereas
+models that forecast the change keep part of it. With local data, fine-tuning brings all models to similar skill on
+GOES-16, GOES-18 and India's GSAT-19.
 \end{abstract}
 
 \begin{highlights}
 \item Over twenty forecast models compared on three test periods with ten seeds each.
 \item Persistence residual explains 1\,h skill; solar-wind drivers explain 6--24\,h skill.
 \item Physics-inspired delay and gates do not change accuracy significantly.
-\item A plain LSTM forecasting change from persistence matches the physics-guided model.
+\item A plain residual LSTM matches the physics-guided model and resists input noise.
 \item Forecasting changes, not levels, survives a factor-of-two satellite offset.
 \end{highlights}
 
@@ -103,7 +107,8 @@ behave on another instrument or at another longitude.
 
 This paper evaluates a physics-guided forecast network, STORM-PhysNet, under a strict protocol and against a
 wide set of controls. A shorter version was accepted at a conference (AGERS 2026) and withdrawn before
-publication. The present study adds a 24\,h lead time; fourteen further model families, so that every
+publication. The present study adds a 24\,h lead time; fourteen further neural model families and two classical
+baselines, so that every
 physics-inspired component is compared with a model that lacks only that component; probabilistic,
 storm-time and alert-level scores; robustness tests that mimic operational data failures; and transfer to
 three other satellites: GOES-16 at a different longitude, GOES-18 near GOES-15's main position, and the
@@ -124,9 +129,10 @@ exceedance of flux thresholds and found persistence hard to beat at the lower th
 found a Transformer only slightly, and not significantly, better than an attention-based LSTM, and
 \citet{sun2024,sun2025} compared LSTM and Transformer models at lead times of 1--24\,h and improved daily
 fluence prediction with pre-training. In this journal, \citet{wangj2023} predicted GEO electron fluxes above 0.8 and 2\,MeV with neural
-networks driven by solar-wind parameters, \citet{geletaw2023} evaluated the SNB3GEO model against LANL and
-GOES-13 data and suggested training on all GEO missions, \citet{geletaw2024} ranked the AE index and solar-wind
-speed as the dominant drivers of the \(>2\)\,MeV flux, and \citet{azragorskaya2026} forecast daily GEO fluence
+networks driven by solar-wind parameters, \citet{geletaw2023} evaluated the daily SNB3GEO model for 2013--2016 and found a prediction
+efficiency of 0.79 against GOES-13 but 0.45 against LANL, a first indication of how strongly skill depends on the
+instrument, \citet{geletaw2024} ranked the AE index and solar-wind speed as the dominant drivers of the daily
+\(>2\)\,MeV flux over 29 years of LANL data, with peak correlations at lags of days, and \citet{azragorskaya2026} forecast daily GEO fluence
 up to three days ahead with gradient-boosted trees and an LSTM, finding the LSTM more stable in training and a
 shift from an autoregressive regime on the first day to a driver-dominated one by the third. None of these
 studies reports significance tests over repeated training runs. The Temporal Fusion Transformer \citep{lim2021} already combines gating with forecasts at several lead
@@ -315,7 +321,7 @@ freedom. The 95\% confidence interval of the mean difference is \(\bar d\pm t_{0
 Holm method: the \(m\) values are sorted, \(p_{(1)}\le\dots\le p_{(m)}\), the \(k\)-th is replaced by
 \(\max_{j\le k}\min\{1,(m-j+1)p_{(j)}\}\), and a difference is called significant if the adjusted value is below
 0.05. This controls the chance of any false positive across the table. The scores, the test and the 0.05 level were
-fixed in the conference study; the attribution of the LSTM variant (Table~\ref{tab:paired_lstm}) and the corrected
+fixed in the conference study; the attribution of the LSTM variant (Table~\ref{tab:paired_lstm}) and the physical-unit
 physics loss were added after the first journal results and are reported as such.
 
 \subsection{Robustness tests}
@@ -489,17 +495,17 @@ penalises under-response to strong coupling.
 the delay; a smoothness term between lead times is defined in the code but multiplied by zero in this
 configuration.
 
-\paragraph{Units of the physics terms} The thresholds above are in physical units, but in all runs reported in
-Section~\ref{sec:results} the terms were evaluated on the standardised inputs, and the Dst and Kp targets entered
-\(\mathcal L_{\mathrm{Dst}}\) and \(\mathcal L_{\mathrm{Kp}}\) standardised before the division by 100 and 9. As a
-result, the \(B_z\)-response term never switched on (standardised \(B_z\) never falls below \(-10\); in physical
-units 203 hours of the training record qualify), the rate bound was held near its floor of 0.01 per hour, the
-\(\epsilon\) term selected windows by a quantity without physical meaning, and the auxiliary Dst and Kp terms
-carried very little weight. We found this while preparing this paper and kept the original behaviour for all
-reported variants so that they can be reproduced. A corrected variant, in which the inputs are converted back to
-physical units before the physics terms and the Dst and Kp targets are converted to nT and Kp units, is trained
-for both encoders in the final campaign \pend. Until then, the conclusions on the physics loss below refer to the
-loss as implemented.
+\paragraph{Two versions of the loss} The network sees standardised inputs, and the constraints can be evaluated
+either on those inputs or on the inputs converted back to physical units. We train both. In the standardised
+version, used in the conference study and for all variants of Table~\ref{tab:main}, the thresholds act on
+standardised values: standardised \(B_z\) never falls below \(-10\), so the \(B_z\)-response term stays inactive
+(in physical units 203 training hours qualify); the rate bound stays near its floor of 0.01 per hour; the
+\(\epsilon\) term ranks windows by a quantity without direct physical meaning; and the Dst and Kp targets enter
+\(\mathcal L_{\mathrm{Dst}}\) and \(\mathcal L_{\mathrm{Kp}}\) standardised before the division by 100 and 9, which gives
+these terms little weight. In the physical version (\emph{physical-unit loss} in the tables), the inputs are converted
+with the training mean and standard deviation before the constraints are evaluated, and the Dst and Kp targets are
+expressed in nT and Kp units, so every term acts as written above. Comparing the two versions for both encoders
+shows whether the constraints help when they are fully active \pend.
 
 \paragraph{Training} Algorithm~\ref{alg:train} summarises the procedure. The AdamW optimiser \citep{loshchilov2019}
 uses a learning rate of \(3\times10^{-4}\), raised linearly over five warm-up epochs and then decayed on a cosine
@@ -555,7 +561,7 @@ ratio \(6.6/r_0\) are projected to 128 features and added to \(\mathbf z\) befor
 \end{itemize}
 A second campaign removes the gate, the delay or the physics loss from the LSTM variant, and trains an LSTM that has
 only the persistence residual (\emph{residual LSTM}: Eq.~(\ref{eq:embed}) without the delay, Eq.~(\ref{eq:lstm}) and a
-linear head added to \(y_t\)) \pend. The final campaign trains both encoders with the corrected physics loss \pend.
+linear head added to \(y_t\)) \pend. The final campaign trains both encoders with the physical-unit loss \pend.
 
 \subsection{Controls}
 \label{sec:controls}
@@ -579,8 +585,20 @@ keeping the flux history, its spread and the mask.
 \item \emph{CNN}: two convolutions (64 and 128 channels, kernel 3) followed by global average pooling over the 72
 hours and a linear head.
 \end{itemize}
-The LSTM, MLP, CNN and the non-residual Transformers predict the flux level directly. The 23 families reported
-here make 690 training runs, which took 51 GPU-hours of training on NVIDIA T4 GPUs.
+The LSTM, MLP, CNN and the non-residual Transformers predict the flux level directly. The 23 neural families
+reported here make 690 training runs, which took 51 GPU-hours of training on NVIDIA T4 GPUs.
+
+\subsection{Classical baselines}
+\label{sec:classical}
+To test whether a neural network is needed at all, two classical models forecast the same change
+\(y_{t+h}-y_t\) from 75 summary features of the same 72\,h window: the last 24 hourly \(\log_{10}\) fluxes, the
+24\,h and 72\,h flux means, the latest and 6\,h mean flux spread, the observed fraction of the last 24\,h, the latest
+value and the 6\,h and 24\,h means of the 15 driver channels, and the 24\,h minimum of \(B_z\). All features use only
+hours up to the forecast origin. \emph{Ridge regression} fits one linear model per lead time, with the penalty
+chosen on the validation windows; it is deterministic, so its ten ``seeds'' are identical. \emph{Gradient-boosted
+trees} (LightGBM; 63 leaves, learning rate 0.03, early stopping on the validation windows) use the seed for row and
+feature subsampling \pend. Both weight storm windows twelve times, like the neural sampler, and are scored on
+exactly the same test windows, with the same degraded inputs, and transferred zero-shot in the same way.
 
 \subsection{Software and use of AI tools in the research}
 All models, training, evaluation, statistics and figures are implemented in Python with PyTorch, NumPy, SciPy and
@@ -589,7 +607,7 @@ generative AI tool Claude (Anthropic; models Claude Opus 5.5 and Claude Sonnet 5
 revise the data pipeline, model, training, statistics and plotting code and to cross-check reported numbers against
 the result files. All design choices were made by the author. The code is covered by automated tests (62 tests,
 including tests that each model variant changes only its intended component, that the fixed delay average uses no
-future values, and that the corrected physics loss switches on under strong southward driving), every figure and
+future values, and that the physical-unit loss switches on under strong southward driving), every figure and
 table is generated directly from the saved predictions by the published scripts, and all results can be reproduced
 from the repository given under Data and code availability.
 
@@ -608,7 +626,10 @@ lead (about 0.85 and 0.80, whatever their size or head), together with the LSTM 
 STORM-PhysNet at 6\,h (0.852); the original STORM-PhysNet trails them by 0.034--0.053, which is significant at
 12\,h after Holm adjustment (Table~\ref{tab:paired}). The MLP is close behind the Transformers (0.842 and 0.796)
 and the LSTM baseline slightly further, while the CNN is far weaker at every lead time. At 24\,h the strong
-models lie within 0.02 of each other (0.72--0.74), with the residual Transformer highest (0.741). The
+models lie within 0.02 of each other (0.72--0.74), with the residual Transformer the best neural model (0.741).
+The ridge regression of Section~\ref{sec:classical} is as accurate as the best neural networks on these clean
+inputs: it scores 0.976, 0.848, 0.794 and 0.745, the highest of all models at 1 and 24\,h and within 0.008 of the
+best at 6 and 12\,h. The
 chronological block A gives the same ranking (Table~\ref{tab:blockA}), and Fig.~\ref{fig:scatter} shows that
 the 12\,h forecasts follow the observations over four orders of magnitude.
 
@@ -666,8 +687,8 @@ findings stand out.
 12\,h and 0.09 at 24\,h, but nothing at 1\,h.
 
 \emph{The physics-inspired components do not change accuracy significantly.} Removing the delay stage or the
-gate, replacing the learned delay with a fixed average, removing the physics loss as implemented
-(Section~\ref{sec:stormphysnet}), or replacing the gate with
+gate, replacing the learned delay with a fixed average, removing the physics loss (standardised
+version, Section~\ref{sec:stormphysnet}), or replacing the gate with
 either alternative gate changes no score by more than 0.011, and none of these differences is significant
 (Fig.~\ref{fig:attribution}). The spectral head and the magnetopause features behave in the same way. The
 learned delay averages \(\tau=1.36\)\,h, and 32\% of the test windows reach \(\tau\ge1.45\)\,h, close to the upper
@@ -682,15 +703,15 @@ also makes training far more reproducible: the standard deviation over seeds at 
 alone or from its combination with the residual, gate and loss is tested by removing one component at a time from
 the LSTM variant (Table~\ref{tab:paired_lstm}, Fig.~\ref{fig:attribution_lstm}). Removing the gate or the delay
 stage changes no score by more than 0.004, and no change is significant after Holm adjustment over the 16
-comparisons. Removing the training-loss terms other than the main likelihood (the physics terms as implemented,
+comparisons. Removing the training-loss terms other than the main likelihood (the physics terms in the standardised version,
 and the Dst, Kp, storm, variance and delay terms) lowers the 6 and 12\,h scores by 0.004 and 0.005 (unadjusted
 \(p=0.009\) and 0.006, Holm-adjusted 0.10 and 0.08), a small effect that does not survive the correction. Most
 telling is the residual LSTM, which has the LSTM encoder and the persistence residual but no delay, gate, physics
 loss, uncertainty head or auxiliary task, and 267\,k instead of 359\,k parameters: it scores 0.974, 0.849, 0.789
 and 0.732, within 0.003 of the full LSTM variant at 1--12\,h and 0.007 above it at 24\,h. Only the 1\,h difference
 (0.001) is significant. The gain of the LSTM variant over STORM-PhysNet therefore comes from the encoder combined
-with the persistence residual, not from the physics-inspired components; the corrected physics loss is tested in
-the final campaign \pend.
+with the persistence residual, not from the physics-inspired components; the physical-unit loss is tested
+in the final campaign \pend.
 
 \input{tables/tab_paired.tex}
 
@@ -719,7 +740,8 @@ zero mean no detectable effect. Note the different horizontal scales.}
 At storm time (Table~\ref{tab:storm}) every model has a lower RMSE than persistence at 6--24\,h. The lowest
 storm-time RMSE is reached by the LSTM variant of STORM-PhysNet at 6\,h (0.61), by the MLP at 12\,h (0.69) and by
 the matched Transformer at 24\,h (0.76); the original STORM-PhysNet is 0.04--0.09 higher. At 1\,h the residual
-models are best (0.28). For the 1000\,pfu alert, the residual models reach an HSS of 0.92--0.93 at 1\,h; at 6 and
+models are best (0.27--0.29, ridge regression lowest at 0.268), and at 24\,h the ridge regression has the lowest
+storm-time error of all models (0.720). For the 1000\,pfu alert, the residual models reach an HSS of 0.92--0.93 at 1\,h; at 6 and
 12\,h the best models reach 0.78--0.79 and 0.74--0.75, against 0.74 and 0.71 for STORM-PhysNet and 0.61 and 0.45
 for persistence.
 
@@ -759,7 +781,10 @@ feature. The same pooling explains its weak clean skill, because the most inform
 is averaged away. When driver data are
 missing for the last 24\,h or entirely, every model falls back towards its skill from the flux history alone;
 the LSTM-encoder models again keep the most (12\,h: 0.67--0.68, against 0.61--0.63 for the next-best models).
-Kp and Dst arriving three hours late change no model by more than 0.004.
+Kp and Dst arriving three hours late change no model by more than 0.004. The ridge regression, as accurate as the
+best networks on clean inputs, is among the least robust to noise: at 12\,h it keeps 0.592 at \(\sigma=1\) and
+falls to \(-0.03\) at \(\sigma=2\), because a linear model passes the noise on every feature straight to its
+forecast. When the drivers are missing it degrades no more than the LSTM models (0.666--0.671 at 12\,h).
 
 \input{tables/tab_probes.tex}
 
@@ -798,19 +823,23 @@ Table~\ref{tab:transfer} and Fig.~\ref{fig:transfer} give the 12\,h skill on the
 
 \emph{GOES-16} (different longitude, flux a factor of two lower). Without retraining, the residual models keep
 part of their skill. The residual LSTM keeps the most (0.455), followed by the LSTM variants of STORM-PhysNet
-(0.37--0.43), STORM-PhysNet (0.306) and the residual Transformer (0.214); persistence scores 0.201. Every model that forecasts the flux level directly falls far below persistence
+(0.37--0.43), STORM-PhysNet (0.306) and the residual Transformer (0.214); persistence scores 0.201. The ridge
+regression transfers better than every network (0.489) and is the only model that beats persistence at 24\,h on
+GOES-16 (0.452 against 0.367). Every model that forecasts the flux level directly falls far below persistence
 (from 0.010 for the default Transformer to \(-0.50\) for the CNN), because it forecasts the GOES-15 level.
 Predicting changes rather than levels is therefore what survives the offset. No model beats persistence
 zero-shot at 24\,h. With all weights fine-tuned, the models reach 0.66--0.69, and training from scratch on
 GOES-16 alone is almost as good, because its record is long.
 
 \emph{GOES-18} (137\(^\circ\)W, close to GOES-15's main position). Zero-shot skill is much higher (0.50--0.66 for all but the CNN), and
-the LSTM-encoder models lead again (residual LSTM 0.661, LSTM variants of STORM-PhysNet 0.64--0.65). After fine-tuning the models reach 0.76--0.80. Persistence is negative at
+the LSTM-encoder models lead the networks again (residual LSTM 0.661, LSTM variants of STORM-PhysNet 0.64--0.65),
+with the ridge regression higher still (0.699). After fine-tuning the models reach 0.76--0.80. Persistence is negative at
 12\,h (\(-0.34\)), which shows how strong the daily cycle is at this position.
 
 \emph{GSAT-19 GRASP} (48\(^\circ\)E, no driver data). Zero-shot, the residual Transformer transfers best
-(0.737), followed by the Transformer with an FFN width of 256 (0.697) and the LSTM variant (0.687); after full
-fine-tuning the models reach 0.78--0.81.
+(0.737), followed by the Transformer with an FFN width of 256 (0.697) and the LSTM variant (0.687); the ridge
+regression, whose driver features are now constant, falls to 0.552. After full fine-tuning the models reach
+0.78--0.81.
 
 Fig.~\ref{fig:case2024} shows GOES-16 during the storm of May 2024. GOES-16 recorded a moderate enhancement that
 reached about the alert level on 15--16 May. On 13 May, the first day with data after the storm onset, the
@@ -845,11 +874,13 @@ without observations. Dotted line: 1000\,pfu alert level.}
 %% =====================================================================================================
 \subsection{Which model should an operator use?}
 On clean GOES-15 data, three model types perform about equally well at 6--24\,h: the residual Transformer, the
-Transformers without a residual, and the LSTM models with the persistence residual. The residual LSTM is the best
-choice overall: it matches the full LSTM variant of STORM-PhysNet within 0.007 at every lead time, is nearly as
-robust to noisy and missing inputs, transfers best without retraining to the two GOES satellites, trains the most
-reproducibly (seed standard deviation 0.001--0.004) and is the simplest model to implement and maintain. Its cost
-is a small loss at 24\,h (0.009 below the residual Transformer). If a new satellite has a year or more of data,
+Transformers without a residual, and the LSTM models with the persistence residual; a ridge regression on summary
+features of the same window does as well. The choice therefore depends on the inputs an operator expects. With
+clean real-time drivers, or at a new GOES longitude without local training data, the ridge regression is the
+simplest and most transferable option, and it is the reference any new network must beat. When solar-wind data
+may be noisy or missing, or when no driver data exist, as for GRASP, the residual LSTM is the better choice: it
+matches the full LSTM variant of STORM-PhysNet within 0.007 at every lead time, keeps most of its skill under
+noise that defeats the linear model, and trains reproducibly (seed standard deviation 0.001--0.004). If a new satellite has a year or more of data,
 fine-tuning any of the strong models gives similar skill, and the choice of architecture matters little.
 
 \subsection{Why do the physics components not help?}
@@ -858,10 +889,10 @@ the remaining timing error is smaller than the hourly resolution. The gate and t
 the 1\,h forecast, where persistence already explains most of the variance, and the information they encode,
 southward \(B_z\) and energy input, is also present in the driver channels that every model sees. The
 alternative gates, the spectral head and the magnetopause features add the same information in other forms,
-and also leave the skill unchanged. For the physics loss the answer is less complete: as implemented, its
+and also leave the skill unchanged. For the physics loss the answer is less complete: in the standardised version, its
 \(B_z\)-response term never switched on, its rate bound sat near its floor and its auxiliary Dst and Kp targets
-were nearly weightless (Section~\ref{sec:stormphysnet}), so the runs test a loss that was mostly inactive. The
-corrected loss tests whether the intended constraints help \pend. Physical knowledge helped in this study through
+were nearly weightless (Section~\ref{sec:stormphysnet}), so those runs test a loss that was mostly inactive. The
+physical-unit version tests whether the intended constraints help \pend. Physical knowledge helped in this study through
 the choice of target (a change from persistence) and of inputs, not through specialised layers.
 
 \subsection{Why does the LSTM encoder help?}
@@ -872,8 +903,10 @@ lower spread over seeds also suggests that the Transformer variants are harder t
 The residual LSTM shows that the encoder and the residual alone reproduce the gain. Its forget gate
 (Eq.~\ref{eq:lstm}) gives a learned exponential memory, a natural fit to a flux that decays over days after each
 enhancement, whereas attention must learn such a decay from the position vectors. The LSTM models also transfer
-best to GOES-16, perhaps because a smooth memory of recent changes depends less on the absolute flux level than
-attention patterns learned on GOES-15.
+best of the networks to GOES-16, perhaps because a smooth memory of recent changes depends less on the absolute
+flux level than attention patterns learned on GOES-15. That a linear model on window summaries transfers better
+still suggests that on clean inputs the forecastable part of the flux is close to linear in the recent flux and
+driver history, and that the advantage of the networks lies in robustness rather than accuracy.
 
 \subsection{Longitude and calibration}
 GOES-16 sits at 75\(^\circ\)W, where geostationary orbit lies at a higher magnetic latitude than at
@@ -889,8 +922,8 @@ chronological GOES-15 test, and it contains few storms. (3) The models are not c
 forecast, whose past forecasts are not publicly archived. (4) The GRASP record is short (14 months) and is used
 without driver inputs. (5) We use one GOES-16/18 telescope and no cross-calibration between satellites. (6) The
 study is an offline evaluation, not an operational trial. (7) The physics-informed loss of all reported variants
-was evaluated in standardised units (Section~\ref{sec:stormphysnet}); only the corrected variants of the final
-campaign test it as intended. (8) Model selection uses the validation error at 24\,h only, which may slightly
+was evaluated on standardised inputs (Section~\ref{sec:stormphysnet}); only the physical-unit versions test
+the constraints as written. (8) Model selection uses the validation error at 24\,h only, which may slightly
 favour the longest lead time over the shortest.
 
 %% =====================================================================================================
@@ -901,9 +934,11 @@ Under a protocol that prevents information leakage, with ten seeds on three test
 change from persistence explains the 1\,h skill of forecasts of relativistic electrons at geostationary orbit,
 and solar-wind inputs explain the 6--24\,h skill. A learned solar-wind delay, a \(B_z\)-conditioned gate, two
 alternative gates, a spectral head and magnetopause features do not change the accuracy significantly, and
-neither does the physics-informed loss as implemented, whose terms acted on standardised inputs. The encoder matters more: models with an LSTM encoder are the most robust to noisy and
-missing inputs and transfer best without retraining to GOES-16 and GOES-18, and a plain LSTM that predicts the
-change from persistence matches the full physics-guided model within 0.007 at every lead time. Models that forecast the flux level directly fail on a satellite whose flux differs by a
+neither does the physics-informed loss evaluated on standardised inputs. The encoder matters more: models with an LSTM encoder are the most robust to noisy and
+missing inputs, and a plain LSTM that predicts the change from persistence matches the full physics-guided model
+within 0.007 at every lead time. A ridge regression on summaries of the same window is as accurate on clean inputs
+and transfers best to GOES-16 and GOES-18, but fails under input noise, so the case for neural networks here rests on
+robustness rather than accuracy. Models that forecast the flux level directly fail on a satellite whose flux differs by a
 factor of two, while models that forecast changes keep part of their skill, and fine-tuning on local data
 brings all strong models to similar skill on GOES-16, GOES-18 and GSAT-19.
 
