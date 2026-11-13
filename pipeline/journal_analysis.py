@@ -136,6 +136,8 @@ def analyse(meta, P, transfer_dirs):
         N["paired_vs_storm"] = [dict(family=f, h=h, diff=dd, p=p, p_holm=float(a)) for (f, h, dd, p), a in zip(rows, adj)]
     # 2b. attribution of the LSTM-encoder variant (campaigns 2 and 3): reference minus each one-component change
     N["paired_vs_lstm"] = paired(S, "storm_lstm_backbone", LSTM_ATTR, H)
+    # width sensitivity of the residual LSTM (default width 128 minus width 64 and 256)
+    N["paired_width"] = paired(S, "lstm_res", ["lstm_res_w64", "lstm_res_w256"], H)
     # 3. storm-time RMSE (Dst <= -50 nT at the target hour)
     def storm_rmse(m, p):
         out = []

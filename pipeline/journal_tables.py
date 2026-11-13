@@ -55,8 +55,14 @@ def rows(N, key_fn, H, groups=True, only=None):
     return out
 
 
+HIDE_PENDING = False
+
+
 def tabular(cols, head, body, caption, label, note="", star=False):
     env = "table*" if star else "table"
+    if HIDE_PENDING:   # drop rows of runs that have not arrived, and the note that explains them
+        body = [r for r in body if "\\pend" not in r]
+        note = note.replace(" \\pend{} marks runs still in progress.", "").replace("\\pend{} marks runs still in progress.", "")
     return "\n".join([f"\\begin{{{env}}}[!t]", "\\centering", f"\\caption{{{caption}}}", f"\\label{{{label}}}", "\\footnotesize",
                       "\\setlength{\\tabcolsep}{4pt}", "\\begin{adjustbox}{max width=\\linewidth}",
                       f"\\begin{{tabular}}{{{cols}}}", "\\toprule", head + " \\\\", "\\midrule", *body, "\\bottomrule", "\\end{tabular}",
@@ -66,7 +72,8 @@ def tabular(cols, head, body, caption, label, note="", star=False):
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--numbers", required=True); ap.add_argument("--out", required=True)
-    a = ap.parse_args(); N = json.load(open(a.numbers)); out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
+    ap.add_argument("--hide-pending", action="store_true", help="omit rows of families without results")
+    a = ap.parse_args(); global HIDE_PENDING; HIDE_PENDING = a.hide_pending; N = json.load(open(a.numbers)); out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
     H = N["horizons"]; hh = " & ".join(f"{h}\\,h" for h in H); cols = "l" + "c" * len(H)
     have = set(N["main"])
 
@@ -76,7 +83,8 @@ def main():
     (out / "tab_main.tex").write_text(tabular(cols, f"Model & {hh}", rows(N, main_v, H),
         "GOES-15 test skill, $\\mathrm{PE}_\\mathrm{clim}$: mean over ten seeds and the three test blocks.", "tab:main",
         "Seed standard deviations are at most 0.011 for the other controls without residual, 0.018 for the residual Transformers, "
-        "0.027 for the STORM-PhysNet variants with a Transformer encoder, 0.005 with the LSTM encoder, and 0.053 for the CNN. "
+        "0.027 for the STORM-PhysNet variants with a Transformer encoder, 0.007 for the models with an LSTM encoder "
+        "and the persistence residual, and 0.053 for the CNN. "
         "\\pend{} marks runs still in progress.", star=True))
 
     def blockA(f):
@@ -140,8 +148,8 @@ def main():
             body.append(f"{lab} & " + " & ".join(["\\pend{}"] * len(pk)) + " \\\\")
     (out / "tab_probes.tex").write_text(tabular("l" + "c" * len(pk), "Model & " + " & ".join(n for _, n in pk), body,
         "Robustness probes: 12\\,h $\\mathrm{PE}_\\mathrm{clim}$ with degraded inputs (seed means over blocks).", "tab:probes",
-        "Noise: Gaussian noise of standard deviation $\\sigma$ (in units of each standardised channel) on every input channel except "
-        "the observed-hour mask. Outage: driver channels held at their last value for the final 24 input hours. No drivers: "
+        "Noise: Gaussian noise of standard deviation $\\sigma$ (in units of each standardised channel) on the 16 continuous "
+        "auxiliary channels; the flux history and the observed-hour mask are unchanged. Outage: driver channels held at their last value for the final 24 input hours. No drivers: "
         "driver channels at their training mean for the whole input. Clean values are in Table~\\ref{tab:main}.", star=True))
 
     # calibration

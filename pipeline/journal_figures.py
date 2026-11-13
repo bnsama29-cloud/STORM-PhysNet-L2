@@ -29,12 +29,13 @@ LABEL = {"storm_bz": "STORM-PhysNet", "storm_lstm_backbone": "STORM-PhysNet (LST
          "storm_cathode_spec": "cathode-anode + spectral", "storm_radiotrophic": "radiotrophic gate",
          "storm_magnetopause": "+ magnetopause", "storm_physfix": "physical-unit loss",
          "lstm_res": "LSTM, residual", "lstm_res_w64": "LSTM, residual, width 64", "lstm_res_w256": "LSTM, residual, width 256",
-         "ridge_res": "Ridge, residual", "gbm_res": "Gradient-boosted trees", "storm_lstm_no_gate": "no gate", "storm_lstm_no_delay": "no delay",
+         "ridge_res": "Ridge regression", "gbm_res": "Gradient-boosted trees", "storm_lstm_no_gate": "no gate", "storm_lstm_no_delay": "no delay",
          "storm_lstm_no_physics": "no physics loss", "storm_lstm_physfix": "physical-unit loss"}
 COL = {  # Okabe-Ito colour-blind-safe palette (line styles also differ where colours repeat)
     "storm_bz": "#D55E00", "storm_lstm_backbone": "#E69F00", "tf_ffn_res": "#0072B2", "transformer_matched": "#CC79A7",
     "lstm": "#009E73", "mlp": "#56B4E9", "tf_flux_only": "#F0E442", "persistence": "#555555", "tf_res_fixed_ma": "#0072B2",
-    "transformer": "#CC79A7", "cnn": "#999999", "tf_ffn256": "#56B4E9"}
+    "transformer": "#CC79A7", "cnn": "#999999", "tf_ffn256": "#56B4E9", "gbm_res": "#000000", "ridge_res": "#882255",
+    "lstm_res": "#009E73"}
 plt.rcParams.update({"font.size": 9, "axes.titlesize": 9, "axes.labelsize": 9, "legend.fontsize": 8,
                      "xtick.labelsize": 8.5, "ytick.labelsize": 8.5, "lines.linewidth": 1.2,
                      "axes.spines.top": False, "axes.spines.right": False, "savefig.dpi": 300, "savefig.bbox": "tight"})
@@ -60,10 +61,13 @@ def gaps(t, *ys, max_gap="1h"):
 def fig_horizon(N, out):
     H = N["horizons"]; fig, ax = plt.subplots(figsize=(COL1, 3.4))
     ax.plot(H, N["persistence"]["pe_clim"], "--", color=COL["persistence"], label=LABEL["persistence"])
-    for f in ("cnn", "lstm", "mlp", "transformer_matched", "tf_ffn_res", "storm_bz", "storm_lstm_backbone"):
+    for f in ("cnn", "lstm", "mlp", "transformer_matched", "tf_ffn_res", "storm_bz", "storm_lstm_backbone",
+              "ridge_res", "gbm_res"):
         if f in N["main"]:
             m = np.array(N["main"][f]["pe_clim"]); s = np.array(N["main"][f]["sd"])
-            ax.errorbar(H, m, yerr=s, marker="o", ms=3, capsize=2, lw=1.2, color=COL[f], label=LABEL[f])
+            classical = f in ("ridge_res", "gbm_res")
+            ax.errorbar(H, m, yerr=s, marker="s" if classical else "o", ms=3, capsize=2, lw=1.2, color=COL[f],
+                        ls=":" if classical else "-", label=LABEL[f])
     ax.set_xticks(H); ax.set_xlabel("Lead time (h)"); ax.set_ylabel(r"PE$_\mathrm{clim}$"); ax.set_ylim(0.2, 1.0)
     ax.legend(frameon=False, ncol=2, fontsize=7.5, loc="upper center", bbox_to_anchor=(0.45, -0.22), columnspacing=1.0)
     fig.tight_layout(); save(fig, out, "fig_horizon.png")
@@ -103,16 +107,18 @@ def fig_noise(N, out):
     fig, axs = plt.subplots(1, len(H), figsize=(COL2, 2.6))
     for i, h in enumerate(H):
         ax = axs[i]
-        for f in ("storm_bz", "storm_lstm_backbone", "tf_ffn_res", "tf_res_fixed_ma", "transformer_matched", "mlp"):
+        for f in ("storm_bz", "storm_lstm_backbone", "tf_ffn_res", "transformer_matched", "mlp", "ridge_res", "gbm_res"):
             if f not in N["probes"]: continue
             v = [N["main"][f]["pe_clim"][i]] + [N["probes"][f][f"noise{s:g}"][i] for s in sig[1:]]
-            ax.plot(sig, v, marker="o", ms=2.5, lw=1.1, color=COL[f], label=LABEL[f], ls="--" if f == "tf_res_fixed_ma" else "-")
+            classical = f in ("ridge_res", "gbm_res")
+            ax.plot(sig, v, marker="s" if classical else "o", ms=2.5, lw=1.1, color=COL[f], label=LABEL[f],
+                    ls=":" if classical else "-")
         ax.set_title(f"{h} h"); ax.set_xticks(sig); ax.set_xlabel(r"noise $\sigma$")
         if i == 0: ax.set_ylabel(r"PE$_\mathrm{clim}$")
         ax.set_ylim(max(-0.2, ax.get_ylim()[0]), 1.0)
     hd, lb = axs[0].get_legend_handles_labels()
-    fig.legend(hd, lb, frameon=False, fontsize=8, ncol=min(6, len(lb)), loc="upper center", bbox_to_anchor=(0.5, 1.0))
-    fig.tight_layout(rect=(0, 0, 1, 0.86)); save(fig, out, "fig_noise.png")
+    fig.legend(hd, lb, frameon=False, fontsize=8, ncol=4, loc="upper center", bbox_to_anchor=(0.5, 1.02))
+    fig.tight_layout(rect=(0, 0, 1, 0.80)); save(fig, out, "fig_noise.png")
 
 
 # ------------------------------------------------------------------------------------------------ predicted vs observed
@@ -231,6 +237,79 @@ def fig_transfer(N, out):
     fig.tight_layout(rect=(0, 0, 1, 0.87)); save(fig, out, "fig_transfer.png")
 
 
+
+# ------------------------------------------------------------------------------------------------ scorecard of the main models
+SCORE_MODELS = ["gbm_res", "ridge_res", "lstm_res", "storm_lstm_backbone", "tf_ffn_res", "transformer_matched",
+                "storm_bz", "mlp"]
+SCORE_LABEL = {"gbm_res": "Gradient-boosted trees", "ridge_res": "Ridge regression", "lstm_res": "Residual LSTM",
+               "storm_lstm_backbone": "STORM-PhysNet (LSTM enc.)", "tf_ffn_res": "Residual Transformer",
+               "transformer_matched": "Matched Transformer", "storm_bz": "STORM-PhysNet", "mlp": "MLP"}
+
+
+def scorecard_table(N, h=12):
+    """Rows = models, columns = criteria at lead time h; returns (columns, higher_is_better, values)."""
+    i = N["horizons"].index(h); T = N["transfer"]
+    cols = [("Clean inputs\nPE$_\\mathrm{clim}$", True), ("Noise $\\sigma=2$\nPE$_\\mathrm{clim}$", True),
+            ("No drivers\nPE$_\\mathrm{clim}$", True), ("Storm RMSE\n(log$_{10}$ flux)", False),
+            ("Alert HSS\n(1000 pfu)", True), ("CRPS\n(log$_{10}$ flux)", False),
+            ("GOES-16\nzero-shot", True), ("GRASP\nzero-shot", True)]
+    V = []
+    for f in SCORE_MODELS:
+        crps = N["calibration"][f]["crps"][i] if f in N.get("calibration", {}) else N["ensemble"][f]["crps"][i]
+        V.append([N["main"][f]["pe_clim"][i], N["probes"][f]["noise2"][i], N["probes"][f]["out72"][i],
+                  N["storm_rmse"][f][i], N["alert_hss"][f][i], crps,
+                  T["goes16"][f]["zeroshot"][i], T["grasp"][f]["zeroshot"][i]])
+    return cols, np.array(V)
+
+
+def fig_scorecard(N, out, h=12):
+    models = [f for f in SCORE_MODELS if f in N["main"]]
+    cols, V = scorecard_table(N, h)
+    # colour = rank within each column (1 = best), so every criterion is on the same scale
+    R = np.zeros_like(V)
+    for j, (_, hib) in enumerate(cols):
+        order = np.argsort(-V[:, j] if hib else V[:, j]); R[order, j] = np.arange(len(models))
+    fig, ax = plt.subplots(figsize=(COL2, 3.0))
+    ax.imshow(R, cmap="YlGnBu_r", vmin=-1.5, vmax=len(models) + 1.5, aspect="auto")
+    for r in range(len(models)):
+        for c in range(len(cols)):
+            ax.text(c, r, f"{V[r, c]:.3f}", ha="center", va="center", fontsize=7.5,
+                    color="white" if R[r, c] <= 1 else "black", fontweight="bold" if R[r, c] == 0 else "normal")
+    ax.set_xticks(range(len(cols))); ax.set_xticklabels([c[0] for c in cols], fontsize=7.5)
+    ax.set_yticks(range(len(models))); ax.set_yticklabels([SCORE_LABEL[f] for f in models], fontsize=8)
+    ax.xaxis.tick_top(); ax.tick_params(length=0)
+    for sp in ax.spines.values(): sp.set_visible(False)
+    ax.set_xticks(np.arange(-0.5, len(cols)), minor=True); ax.set_yticks(np.arange(-0.5, len(models)), minor=True)
+    ax.grid(which="minor", color="white", lw=1.5); ax.tick_params(which="minor", length=0)
+    fig.tight_layout(); save(fig, out, "fig_scorecard.png")
+
+
+# ------------------------------------------------------------------------------------------------ what the trees use
+IMP_LABEL = {"flux_now": "flux, latest hour", "flux_hist": "flux, earlier 23 h and means", "flux_spread": "flux spread, coverage",
+             "speed": "solar-wind speed", "imf": "IMF $B_z$, $B_t$, coupling", "plasma": "density, pressure",
+             "geo": "Kp, Dst, storm timing"}
+IMP_COL = {"flux_now": "#0072B2", "flux_hist": "#56B4E9", "flux_spread": "#BBBBBB", "speed": "#E69F00",
+           "imf": "#D55E00", "plasma": "#CC79A7", "geo": "#009E73"}
+
+
+def fig_gbm_importance(imp, out):
+    G = imp["groups"]; H = imp["horizons"]; M = np.array(imp["mean"])
+    fig, ax = plt.subplots(figsize=(COL1, 2.9))
+    left = np.zeros(len(H)); y = np.arange(len(H))
+    for k, g in enumerate(G):
+        ax.barh(y, M[:, k], left=left, color=IMP_COL[g], label=IMP_LABEL[g], height=0.65, edgecolor="white", lw=0.5)
+        for j in range(len(H)):
+            if M[j, k] >= 0.08:
+                ax.text(left[j] + M[j, k] / 2, y[j], f"{100 * M[j, k]:.0f}", ha="center", va="center", fontsize=7,
+                        color="white" if g in ("flux_now", "imf", "geo") else "black")
+        left += M[:, k]
+    ax.set_yticks(y); ax.set_yticklabels([f"{h} h" for h in H]); ax.invert_yaxis()
+    ax.set_xlim(0, 1); ax.set_xticks([0, 0.25, 0.5, 0.75, 1]); ax.set_xticklabels(["0", "25", "50", "75", "100"])
+    ax.set_xlabel("share of total split gain (%)")
+    ax.legend(frameon=False, fontsize=7, ncol=2, loc="upper center", bbox_to_anchor=(0.42, -0.25), columnspacing=0.8,
+              handlelength=1.0)
+    fig.tight_layout(); save(fig, out, "fig_gbm_importance.png")
+
 # ------------------------------------------------------------------------------------------------ data coverage and GOES-15 vs GOES-16
 def fig_coverage_and_overlap(repo, out):
     sys.path.insert(0, str(repo))
@@ -269,10 +348,12 @@ def fig_coverage_and_overlap(repo, out):
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--repo", required=True); ap.add_argument("--numbers", required=True)
     ap.add_argument("--blocks", nargs="+", required=True); ap.add_argument("--transfer", nargs="*", default=[])
-    ap.add_argument("--out", required=True); a = ap.parse_args()
+    ap.add_argument("--out", required=True); ap.add_argument("--importance", default=None); a = ap.parse_args()
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True); N = json.load(open(a.numbers))
     meta, P = load_blocks(a.blocks)
     fig_horizon(N, out); fig_noise(N, out); fig_transfer(N, out); fig_attribution(N, out, P, meta)
+    if all(f in N["main"] for f in SCORE_MODELS): fig_scorecard(N, out)
+    if a.importance: fig_gbm_importance(json.load(open(a.importance)), out)
     fig_attribution(N, out, P, meta, ref="storm_lstm_backbone", name="fig_attribution_lstm.png", prefix="LSTM enc., ",
                     fams=["lstm_res", "storm_lstm_no_gate", "storm_lstm_no_delay", "storm_lstm_no_physics", "storm_lstm_physfix"],
                     plain=("lstm_res",), xlabel_ref="STORM-PhysNet (LSTM enc.)")
