@@ -184,7 +184,7 @@ class Trainer:
         print(f"[Trainer] horizon_weights={hw} physics_horizon_scale={phs}")
         physics_loss_fn = PhysicsInformedLoss(base_weights).to(self.device)
         if lw.get("input_scaler") is not None:     # physics terms in physical units (journal "physfix" families)
-            physics_loss_fn.set_input_scaler(*lw["input_scaler"])
+            physics_loss_fn.set_input_scaler(*lw["input_scaler"], dst_idx=lw.get("dst_idx"), kp_idx=lw.get("kp_idx"))
         physics_ramp_start = tr["warmup_epochs"]            # epoch when physics turns on
         physics_ramp_end   = tr["warmup_epochs"] + 10      # full weight after 10 more epochs
 

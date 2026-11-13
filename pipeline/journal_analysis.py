@@ -91,6 +91,23 @@ def per_seed(meta, P, fam, blocks, fn, key="pred"):
     return np.array([np.mean([fn(meta[b], P[b][fam][s][key]) for b in blocks], 0) for s in seeds])
 
 
+LSTM_ATTR = ["lstm_res", "storm_lstm_no_gate", "storm_lstm_no_delay", "storm_lstm_no_physics", "storm_lstm_physfix"]
+
+
+def paired(S, ref, fams, H):
+    """Paired t-tests of ref minus each family on the per-seed (block-averaged) scores, Holm-adjusted over all rows.
+    Families absent from S are skipped; returns [] when ref or every family is missing."""
+    fams = [f for f in fams if f in S and f != ref]
+    if ref not in S or not fams:
+        return []
+    rows, ps = [], []
+    for f in fams:
+        d = S[ref] - S[f]
+        for i, h in enumerate(H):
+            p = stats.ttest_1samp(d[:, i], 0).pvalue; rows.append((f, h, float(d[:, i].mean()), float(p))); ps.append(p)
+    return [dict(family=f, h=h, diff=dd, p=p, p_holm=float(a)) for (f, h, dd, p), a in zip(rows, holm(ps))]
+
+
 def analyse(meta, P, transfer_dirs):
     fams, blocks = families(P)
     H = [int(h) for h in meta[blocks[0]]["horizons"]]
@@ -113,6 +130,8 @@ def analyse(meta, P, transfer_dirs):
                 p = stats.ttest_1samp(d[:, i], 0).pvalue; rows.append((f, h, float(d[:, i].mean()), float(p))); ps.append(p)
         adj = holm(ps)
         N["paired_vs_storm"] = [dict(family=f, h=h, diff=dd, p=p, p_holm=float(a)) for (f, h, dd, p), a in zip(rows, adj)]
+    # 2b. attribution of the LSTM-encoder variant (campaigns 2 and 3): reference minus each one-component change
+    N["paired_vs_lstm"] = paired(S, "storm_lstm_backbone", LSTM_ATTR, H)
     # 3. storm-time RMSE (Dst <= -50 nT at the target hour)
     def storm_rmse(m, p):
         out = []

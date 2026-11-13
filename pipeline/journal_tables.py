@@ -24,6 +24,7 @@ ORDER = [  # (family, label, group)
     ("storm_no_delay", "\\quad no delay", "STORM-PhysNet and variants"),
     ("storm_no_gate", "\\quad no gate", "STORM-PhysNet and variants"),
     ("storm_no_physics", "\\quad no physics loss", "STORM-PhysNet and variants"),
+    ("storm_physfix", "\\quad physics loss in physical units", "STORM-PhysNet and variants"),
     ("storm_cathode", "\\quad cathode--anode gate", "STORM-PhysNet and variants"),
     ("storm_cathode_spec", "\\quad cathode--anode + spectral head", "STORM-PhysNet and variants"),
     ("storm_radiotrophic", "\\quad radiotrophic gate", "STORM-PhysNet and variants"),
@@ -31,6 +32,7 @@ ORDER = [  # (family, label, group)
     ("storm_lstm_no_gate", "\\quad LSTM encoder, no gate", "STORM-PhysNet and variants"),
     ("storm_lstm_no_delay", "\\quad LSTM encoder, no delay", "STORM-PhysNet and variants"),
     ("storm_lstm_no_physics", "\\quad LSTM encoder, no physics loss", "STORM-PhysNet and variants"),
+    ("storm_lstm_physfix", "\\quad LSTM encoder, physics loss in physical units", "STORM-PhysNet and variants"),
     ("storm_magnetopause", "\\quad + magnetopause features", "STORM-PhysNet and variants"),
 ]
 LABEL = {f: l.replace("\\quad ", "STORM-PhysNet, " if f.startswith("storm_") else "Residual TF ") for f, l, _ in ORDER}
@@ -94,6 +96,19 @@ def main():
     (out / "tab_paired.tex").write_text(tabular(cols, f"STORM-PhysNet minus & {hh}", body,
         "Difference in $\\mathrm{PE}_\\mathrm{clim}$, STORM-PhysNet minus each model (positive: STORM-PhysNet better).", "tab:paired",
         "Paired $t$-test on the ten seed means (each averaged over blocks); $^{*}$ Holm-adjusted $p<0.05$ over all comparisons in the table.", star=True))
+
+    # attribution of the LSTM-encoder variant (campaigns 2 and 3)
+    PL = {}
+    for r in N.get("paired_vs_lstm", []): PL.setdefault(r["family"], {})[r["h"]] = r
+    lstm_rows = [("lstm_res", "LSTM with persistence residual only"), ("storm_lstm_no_gate", "no gate"),
+                 ("storm_lstm_no_delay", "no delay"), ("storm_lstm_no_physics", "no physics loss"),
+                 ("storm_lstm_physfix", "physics loss in physical units")]
+    body = [f"{lab} & " + (" & ".join(cell(PL[f][h]) for h in H) if f in PL else " & ".join(["\\pend{}"] * len(H))) + " \\\\"
+            for f, lab in lstm_rows]
+    (out / "tab_paired_lstm.tex").write_text(tabular(cols, f"LSTM variant minus & {hh}", body,
+        "Difference in $\\mathrm{PE}_\\mathrm{clim}$, STORM-PhysNet with LSTM encoder minus each one-component change "
+        "(positive: the full LSTM variant is better).", "tab:paired_lstm",
+        "Paired $t$-test on the ten seed means; $^{*}$ Holm-adjusted $p<0.05$ over the comparisons in this table."))
 
     # storm-time RMSE and alert HSS
     def sr(f): return N["storm_rmse"].get(f) if f in N["storm_rmse"] else None

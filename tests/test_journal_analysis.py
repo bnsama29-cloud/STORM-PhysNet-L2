@@ -47,3 +47,15 @@ def test_gaps_breaks_lines_only_at_long_jumps():
     t = pd.to_datetime(["2024-01-01 00:00", "2024-01-01 01:00", "2024-01-01 05:00", "2024-01-01 06:00"])
     tt, (y,) = gaps(t, np.array([1.0, 2.0, 3.0, 4.0]))
     assert len(tt) == 5 and np.isnan(y[2]) and y[[0, 1, 3, 4]].tolist() == [1.0, 2.0, 3.0, 4.0]
+
+
+def test_paired_against_lstm_reference_skips_missing_families():
+    import numpy as np
+    from journal_analysis import paired
+    rng = np.random.default_rng(0)
+    ref = rng.normal(0.8, 0.01, (10, 2))
+    S = {"storm_lstm_backbone": ref, "storm_lstm_no_gate": ref - 0.05}
+    rows = paired(S, "storm_lstm_backbone", ["storm_lstm_no_gate", "lstm_res"], [1, 6])
+    assert [r["family"] for r in rows] == ["storm_lstm_no_gate", "storm_lstm_no_gate"]
+    assert rows[0]["diff"] == pytest.approx(0.05)
+    assert paired({}, "storm_lstm_backbone", ["lstm_res"], [1]) == []

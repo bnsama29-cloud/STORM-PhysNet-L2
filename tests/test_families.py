@@ -144,3 +144,19 @@ def test_physfix_physics_loss_sees_physical_units(tmp_path):
     assert new(out, tg, x)[1]["bz_resp"] > 0.0
     xp = new.physical_inputs(x)
     assert xp[0, -1, i_bz].item() == pytest.approx(-15.0, abs=1e-4) and xp[0, -1, -1].item() == x[0, -1, -1].item()
+
+
+def test_physfix_auxiliary_targets_in_physical_units():
+    """Dst and Kp targets arrive standardised; with the scaler and indices the loss compares in nT and Kp units."""
+    import numpy as np
+    i_dst, i_kp = SCALED.index("dst"), SCALED.index("kp")
+    mu = np.zeros(len(SCALED)); sd = np.ones(len(SCALED)); mu[i_dst], sd[i_dst] = -12.0, 18.0; mu[i_kp], sd[i_kp] = 1.9, 1.2
+    B, H = 3, len(HSTEPS)
+    y_dst_nt = torch.full((B, H), -100.0); y_kp = torch.full((B, H), 6.0)
+    out = {"flux_pred": torch.zeros(B, H), "dst_pred": y_dst_nt.clone(), "kp_pred": y_kp.clone()}
+    tg = {"y_flux": torch.zeros(B, H), "y_dst": (y_dst_nt - mu[i_dst]) / sd[i_dst], "y_kp": (y_kp - mu[i_kp]) / sd[i_kp],
+          "y_storm": torch.zeros(B, 1), "storm_flag": torch.zeros(B, 1), "y_persist": torch.zeros(B, H)}
+    fn = PhysicsInformedLoss(LossWeights(horizon_hours=[float(h) for h in HSTEPS]))
+    fn.set_input_scaler(mu, sd, dst_idx=i_dst, kp_idx=i_kp)
+    comps = fn(out, tg, torch.zeros(B, 72, len(SW_COLS)))[1]
+    assert comps["dst"] == pytest.approx(0.0, abs=1e-8) and comps["kp"] == pytest.approx(0.0, abs=1e-8)

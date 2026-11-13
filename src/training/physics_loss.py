@@ -79,8 +79,9 @@ class PhysicsInformedLoss(nn.Module):
         self.register_buffer("horizon_hours", torch.tensor(self.w.horizon_hours, dtype=torch.float32))
         self.in_mu = None   # set by set_input_scaler: physics terms then see physical units
         self.in_sd = None
+        self.dst_idx = self.kp_idx = None
 
-    def set_input_scaler(self, mu, sd):
+    def set_input_scaler(self, mu, sd, dst_idx=None, kp_idx=None):
         """Give the loss the block's input scaler (mean, std of the leading len(mu) channels of x_sw).
 
         The physics terms compare inputs with thresholds in physical units (Bz < -10 nT for > 6 h, V in km/s).
@@ -89,6 +90,9 @@ class PhysicsInformedLoss(nn.Module):
         """
         self.in_mu = torch.as_tensor(mu, dtype=torch.float32)
         self.in_sd = torch.as_tensor(sd, dtype=torch.float32)
+        # The Dst/Kp auxiliary targets arrive standardised; their loss divides by 100 nT and 9, scales meant for
+        # physical units. With the indices given, the targets are converted back to nT and Kp units first.
+        self.dst_idx, self.kp_idx = dst_idx, kp_idx
 
     def physical_inputs(self, x_sw: torch.Tensor) -> torch.Tensor:
         """x_sw in physical units on the scaled channels (unchanged if no scaler was set)."""
@@ -363,6 +367,10 @@ class PhysicsInformedLoss(nn.Module):
         # Dst ranges -300..+20 nT  → divide by 100 → scale -3..+0.2  → MSE ~ 0.1-1.0
         # Kp  ranges   0.. +9      → divide by  9  → scale  0.. 1.0  → MSE ~ 0.1-0.5
         DST_SCALE, KP_SCALE = 100.0, 9.0
+        if self.in_mu is not None and self.dst_idx is not None:
+            y_dst = y_dst * float(self.in_sd[self.dst_idx]) + float(self.in_mu[self.dst_idx])
+        if self.in_mu is not None and self.kp_idx is not None:
+            y_kp = y_kp * float(self.in_sd[self.kp_idx]) + float(self.in_mu[self.kp_idx])
         L_dst   = F.mse_loss(torch.nan_to_num(dst_pred, 0.0) / DST_SCALE,
                               y_dst / DST_SCALE)
         L_kp    = F.mse_loss(torch.nan_to_num(kp_pred,  0.0) / KP_SCALE,

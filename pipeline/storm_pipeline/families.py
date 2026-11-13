@@ -35,7 +35,8 @@ SPEC = {
     "storm_lstm_no_gate": dict(model_type="storm_physnet", ablation="no_bz_gate", match=False, model=dict(backbone="lstm")),
     "storm_lstm_no_delay": dict(model_type="storm_physnet", ablation="no_delay", match=False, model=dict(backbone="lstm")),
     "storm_lstm_no_physics": dict(model_type="storm_physnet", ablation="no_physics", match=False, model=dict(backbone="lstm")),
-    # physics loss evaluated in physical units (bug fix found while writing the journal paper); otherwise identical
+    # loss as intended: physics terms and Dst/Kp auxiliary targets in physical units (unit bug found while writing the
+    # journal paper; the earlier families keep the original behaviour so their runs reproduce); otherwise identical
     "storm_physfix": dict(model_type="storm_physnet", ablation="none", match=False, physical_loss=True),
     "storm_lstm_physfix": dict(model_type="storm_physnet", ablation="none", match=False, physical_loss=True,
                                model=dict(backbone="lstm")),
@@ -56,6 +57,7 @@ def configure(cfg, family, scaler=None):
         mu, sd = scaler
         assert list(SW_COLS[: len(mu)]) == list(SCALED), "scaler columns must be the leading input channels"
         cfg.setdefault("loss", {})["input_scaler"] = ([float(v) for v in mu], [float(v) for v in sd])
+        cfg["loss"]["dst_idx"], cfg["loss"]["kp_idx"] = SCALED.index("dst"), SCALED.index("kp")
     return cfg
 
 
