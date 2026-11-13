@@ -273,7 +273,8 @@ and early stopping on the fold's validation data.
 \includegraphics[width=\textwidth]{figures/fig_architecture.pdf}
 \caption{STORM-PhysNet. Orange: the physics-inspired components tested in this study (delay stage and \(B_z\)
 gate); blue: the encoder, a Transformer in the original model and an LSTM in the best variant; green: one output
-head per lead time, each predicting a change from persistence and its uncertainty.}
+head per lead time, each predicting a change from persistence and its uncertainty. The diagram was drawn in TikZ
+with code written with the assistance of Claude Opus 5.5 (Anthropic) and checked by the author against the model code.}
 \label{fig:arch}
 \end{figure*}
 
@@ -337,6 +338,16 @@ its driver channels. \emph{Flux-only Transformer}: the matched Transformer with 
 zero. \emph{Baselines}: an LSTM (two layers of 64 units), a multilayer perceptron (MLP) and a one-dimensional
 convolutional network (CNN), all predicting the flux level directly. The 19 families make 570 training runs,
 which took about 42 GPU-hours on NVIDIA T4 GPUs.
+
+\subsection{Software and use of AI tools in the research}
+All models, training, evaluation, statistics and figures are implemented in Python with PyTorch, NumPy, SciPy and
+Matplotlib; Fig.~\ref{fig:arch} is drawn with TikZ. The author wrote and edited this code with the assistance of
+the generative AI tool Claude (Anthropic; models Claude Opus 5.5 and Claude Sonnet 5.5), which was used to write
+and revise the data pipeline, model, training, statistics and plotting code and to cross-check reported numbers
+against the result files. All design choices were made by the author. The code is covered by automated tests
+(56 tests, including tests that each model variant changes only its intended component and that the fixed
+delay average uses no future values), every figure and table is generated directly from the saved predictions by the published
+scripts, and all results can be reproduced from the repository given under Data and code availability.
 
 %% =====================================================================================================
 \section{Results}
@@ -612,9 +623,10 @@ not-for-profit sectors.
 \printcredits
 
 \section*{Declaration of generative AI and AI-assisted technologies in the manuscript preparation process}
-During the preparation of this work the author used Claude (Anthropic) to draft and revise the text, to write
-the analysis, plotting, statistics and experiment code, and to cross-check the reported numbers against the
-result files. After using this tool, the author reviewed and edited the content as needed and takes full
+During the preparation of this work the author used Claude (Anthropic; Claude Opus 5.5 and Claude Sonnet 5.5) in
+order to draft and revise the text of all sections, to check that the reported numbers match the result files,
+and to verify the bibliographic details of the references against Crossref; its use for code and for the
+architecture diagram is described in the Methods section and in the caption of Fig.~\ref{fig:arch}. After using this tool, the author reviewed and edited the content as needed and takes full
 responsibility for the content of the published article.
 
 \section*{Acknowledgements}
