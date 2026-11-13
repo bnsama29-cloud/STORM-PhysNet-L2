@@ -111,7 +111,7 @@ print("ALL WORK DONE: send", name) if all(done) else print("NOT FINISHED: add th
 
 def main(commit):
     out = Path(__file__).resolve().parent / "kaggle"; out.mkdir(exist_ok=True)
-    hours = {1: 7, 2: 7, 3: 4}
+    hours = {1: 7, 2: 7, 3: 5}
     for acc, (fams, tfams) in GROUPS.items():
         s = (TEMPLATE.replace("__ACC__", str(acc)).replace("__FAMS__", fams).replace("__TFAMS__", tfams)
              .replace("__COMMIT__", commit).replace("__REPO_URL__", REPO_URL).replace("__HOURS__", str(hours[acc])))
