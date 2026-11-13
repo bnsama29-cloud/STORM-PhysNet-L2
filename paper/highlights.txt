@@ -1,0 +1,7 @@
+Highlights
+
+- Twenty forecast models compared on three test periods, ten seeds and paired tests.
+- Persistence residual explains 1 h skill; solar-wind drivers explain 6–24 h skill.
+- Physics-inspired delay, gates and losses do not change accuracy significantly.
+- An LSTM encoder makes the physics-guided model the most robust and transferable.
+- Forecasting changes, not levels, survives a factor-of-two satellite offset.

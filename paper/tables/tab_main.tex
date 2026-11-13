@@ -1,0 +1,45 @@
+\begin{table}[!t]
+\centering
+\caption{GOES-15 test skill, $\mathrm{PE}_\mathrm{clim}$: mean over ten seeds and the three test blocks.}
+\label{tab:main}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{lcccc}
+\toprule
+Model & 1\,h & 6\,h & 12\,h & 24\,h \\
+\midrule
+\multicolumn{5}{l}{\textit{Reference}} \\
+Persistence & 0.967 & 0.572 & 0.249 & 0.546 \\
+\multicolumn{5}{l}{\textit{Baselines}} \\
+LSTM & 0.929 & 0.833 & 0.791 & 0.726 \\
+LSTM, residual & \pend{} & \pend{} & \pend{} & \pend{} \\
+MLP & 0.932 & 0.842 & 0.796 & 0.718 \\
+CNN & 0.766 & 0.608 & 0.547 & 0.519 \\
+\multicolumn{5}{l}{\textit{Transformer controls}} \\
+Transformer (default size) & 0.958 & 0.850 & 0.802 & 0.733 \\
+Transformer, matched & 0.961 & 0.848 & 0.797 & 0.737 \\
+Transformer, FFN 256 & 0.960 & 0.849 & 0.799 & 0.737 \\
+Residual Transformer & 0.972 & 0.850 & 0.798 & 0.741 \\
+\quad + fixed average & 0.972 & 0.847 & 0.795 & 0.738 \\
+Flux-only Transformer & 0.962 & 0.823 & 0.747 & 0.646 \\
+\multicolumn{5}{l}{\textit{STORM-PhysNet and variants}} \\
+STORM-PhysNet & 0.972 & 0.814 & 0.749 & 0.731 \\
+\quad fixed average & 0.971 & 0.811 & 0.745 & 0.733 \\
+\quad no delay & 0.971 & 0.814 & 0.748 & 0.736 \\
+\quad no gate & 0.972 & 0.818 & 0.754 & 0.732 \\
+\quad no physics loss & 0.973 & 0.824 & 0.759 & 0.730 \\
+\quad cathode--anode gate & 0.972 & 0.824 & 0.755 & 0.730 \\
+\quad cathode--anode + spectral head & 0.971 & 0.816 & 0.753 & 0.735 \\
+\quad radiotrophic gate & 0.971 & 0.807 & 0.746 & 0.733 \\
+\quad LSTM encoder & 0.975 & 0.852 & 0.790 & 0.725 \\
+\quad LSTM encoder, no gate & \pend{} & \pend{} & \pend{} & \pend{} \\
+\quad LSTM encoder, no delay & \pend{} & \pend{} & \pend{} & \pend{} \\
+\quad LSTM encoder, no physics loss & \pend{} & \pend{} & \pend{} & \pend{} \\
+\quad + magnetopause features & 0.972 & 0.821 & 0.755 & 0.730 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+
+\par\vspace{0.5ex}{\footnotesize\raggedright Seed standard deviations are at most 0.011 for the other controls without residual, 0.018 for the residual Transformers, 0.027 for the STORM-PhysNet variants with a Transformer encoder, 0.005 with the LSTM encoder, and 0.053 for the CNN. \pend{} marks runs still in progress.\par}
+\end{table}

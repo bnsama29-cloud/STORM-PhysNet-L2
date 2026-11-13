@@ -1,0 +1,27 @@
+\documentclass[border=4pt]{standalone}
+\usepackage{tikz}
+\usepackage[scaled]{helvet}\renewcommand{\familydefault}{\sfdefault}
+\usetikzlibrary{positioning,arrows.meta,calc}
+\definecolor{orng}{HTML}{E69F00}\definecolor{blu}{HTML}{0072B2}\definecolor{grn}{HTML}{009E73}\definecolor{red}{HTML}{D55E00}
+\begin{document}
+\begin{tikzpicture}[font=\footnotesize, node distance=5mm and 7mm,
+  box/.style={draw, rounded corners=2pt, align=center, minimum height=11mm, text width=27mm, inner sep=3pt},
+  ar/.style={-{Stealth[length=2mm]}, thick}]
+\node[box, fill=gray!8] (aux) {17 driver and\\flux-spread channels\\(last 72\,h)};
+\node[box, fill=gray!8, below=of aux] (flux) {\(\log_{10}\) flux history\\(last 72\,h)};
+\node[box, fill=orng!25, right=of aux] (delay) {Delay stage\\learned \(\tau\in[0.5,1.5]\)\,h};
+\node[box, fill=gray!8, right=of delay, yshift=-8mm] (proj) {Join and project\\to 128 features\\per hour};
+\node[box, fill=blu!18, right=of proj] (enc) {Encoder\\Transformer (2 layers,\\4 heads) or LSTM\\(2 layers)};
+\node[box, fill=orng!25, right=of enc] (gate) {\(B_z\) gate\\128 factors\\in \([0.1,1]\)};
+\node[box, fill=grn!20, right=of gate, text width=30mm] (heads) {Four heads (1, 6, 12, 24\,h):\\change \(\Delta_h\) and\\log-variance};
+\node[box, fill=gray!8, right=of heads, text width=22mm] (out) {Forecast\\\(\hat y_{t+h}=y_t+\Delta_h\)};
+\node[box, fill=red!10, below=19mm of heads, text width=62mm, xshift=-14mm] (loss) {Training loss: \(\beta\)-NLL over lead times, storm
+under-prediction penalty, Dst/Kp/storm terms, physics terms on the 1\,h head};
+\draw[ar] (aux) -- (delay); \draw[ar] (delay.east) -| ($(proj.north)+(-6mm,0)$);
+\draw[ar] (flux.east) -| ($(proj.south)+(-6mm,0)$);
+\draw[ar] (proj) -- (enc); \draw[ar] (enc) -- (gate); \draw[ar] (gate) -- (heads); \draw[ar] (heads) -- (out);
+\draw[ar, dashed] (aux.north) -- ++(0,5mm) -| node[above, pos=0.25] {southward-\(B_z\) mean, maximum and duration} (gate.north);
+\draw[ar, dashed] (flux.south) -- ++(0,-4mm) -| node[above, pos=0.3] {last observed value \(y_t\) (persistence)} (out.south);
+\draw[ar, dashed] (heads) -- (heads|-loss.north);
+\end{tikzpicture}
+\end{document}

@@ -1,0 +1,71 @@
+\begin{table*}[!t]
+\centering
+\caption{Cross-satellite transfer from the block-A GOES-15 models: 12\,h $\mathrm{PE}_\mathrm{clim}$, mean over folds and ten seeds.}
+\label{tab:transfer}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{lcccc}
+\toprule
+Model & zero-shot & heads & full & scratch \\
+\midrule
+\multicolumn{5}{l}{\textit{GOES-16} (persistence 0.201)} \\
+LSTM, residual & \pend{} & \pend{} & \pend{} & \pend{} \\
+MLP & -0.065 & -- & -- & -- \\
+CNN & -0.497 & -- & -- & -- \\
+Transformer (default size) & 0.010 & 0.617 & 0.682 & -- \\
+Transformer, matched & -0.053 & 0.624 & 0.689 & 0.682 \\
+Transformer, FFN 256 & 0.003 & -- & -- & -- \\
+Residual Transformer & 0.214 & 0.660 & 0.693 & 0.692 \\
+STORM-PhysNet & 0.306 & 0.630 & 0.672 & 0.669 \\
+\quad no physics loss & 0.328 & 0.640 & 0.680 & -- \\
+\quad cathode--anode gate & 0.325 & 0.631 & 0.678 & -- \\
+\quad cathode--anode + spectral head & 0.301 & 0.636 & 0.674 & -- \\
+\quad radiotrophic gate & 0.319 & 0.637 & 0.675 & -- \\
+\quad LSTM encoder & 0.371 & 0.640 & 0.659 & -- \\
+\quad LSTM encoder, no gate & \pend{} & \pend{} & \pend{} & \pend{} \\
+\quad LSTM encoder, no delay & \pend{} & \pend{} & \pend{} & \pend{} \\
+\quad LSTM encoder, no physics loss & \pend{} & \pend{} & \pend{} & \pend{} \\
+\quad + magnetopause features & 0.293 & 0.631 & 0.675 & -- \\
+\multicolumn{5}{l}{\textit{GOES-18} (persistence -0.336)} \\
+LSTM, residual & \pend{} & \pend{} & \pend{} & \pend{} \\
+MLP & 0.505 & -- & -- & -- \\
+CNN & 0.216 & -- & -- & -- \\
+Transformer (default size) & 0.532 & 0.783 & 0.798 & -- \\
+Transformer, matched & 0.496 & 0.787 & 0.797 & 0.774 \\
+Transformer, FFN 256 & 0.523 & -- & -- & -- \\
+Residual Transformer & 0.604 & 0.778 & 0.792 & 0.776 \\
+STORM-PhysNet & 0.575 & 0.718 & 0.773 & 0.754 \\
+\quad no physics loss & 0.608 & 0.730 & 0.777 & -- \\
+\quad cathode--anode gate & 0.581 & 0.724 & 0.777 & -- \\
+\quad cathode--anode + spectral head & 0.590 & 0.726 & 0.778 & -- \\
+\quad radiotrophic gate & 0.599 & 0.726 & 0.769 & -- \\
+\quad LSTM encoder & 0.640 & 0.748 & 0.759 & -- \\
+\quad LSTM encoder, no gate & \pend{} & \pend{} & \pend{} & \pend{} \\
+\quad LSTM encoder, no delay & \pend{} & \pend{} & \pend{} & \pend{} \\
+\quad LSTM encoder, no physics loss & \pend{} & \pend{} & \pend{} & \pend{} \\
+\quad + magnetopause features & 0.584 & 0.722 & 0.774 & -- \\
+\multicolumn{5}{l}{\textit{GSAT-19 GRASP} (persistence 0.129)} \\
+LSTM, residual & \pend{} & \pend{} & \pend{} & \pend{} \\
+MLP & 0.656 & -- & -- & -- \\
+CNN & 0.297 & -- & -- & -- \\
+Transformer (default size) & 0.646 & 0.762 & 0.803 & -- \\
+Transformer, matched & 0.664 & 0.768 & 0.802 & 0.802 \\
+Transformer, FFN 256 & 0.697 & -- & -- & -- \\
+Residual Transformer & 0.737 & 0.772 & 0.808 & 0.805 \\
+STORM-PhysNet & 0.634 & 0.741 & 0.791 & 0.795 \\
+\quad no physics loss & 0.630 & 0.743 & 0.795 & -- \\
+\quad cathode--anode gate & 0.648 & 0.746 & 0.799 & -- \\
+\quad cathode--anode + spectral head & 0.656 & 0.740 & 0.798 & -- \\
+\quad radiotrophic gate & 0.617 & 0.747 & 0.797 & -- \\
+\quad LSTM encoder & 0.687 & 0.751 & 0.784 & -- \\
+\quad LSTM encoder, no gate & \pend{} & \pend{} & \pend{} & \pend{} \\
+\quad LSTM encoder, no delay & \pend{} & \pend{} & \pend{} & \pend{} \\
+\quad LSTM encoder, no physics loss & \pend{} & \pend{} & \pend{} & \pend{} \\
+\quad + magnetopause features & 0.635 & 0.746 & 0.796 & -- \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+
+\par\vspace{0.5ex}{\footnotesize\raggedright Heads: encoder frozen, output layers retrained. Full: all weights fine-tuned. Scratch: trained only on the target satellite. ``--'': not run (zero-shot only for these families).\par}
+\end{table*}
