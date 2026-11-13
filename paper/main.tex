@@ -675,11 +675,18 @@ fixed-average variant reproduces without loss of skill.
 
 \emph{The encoder matters.} Replacing the Transformer with an LSTM raises the 1\,h score to 0.975, the highest of
 all 19 models (\(+0.003\) over the residual Transformer, paired \(p<0.001\)), and the 6 and 12\,h scores by 0.04
-(Holm-adjusted \(p=0.04\) and 0.02 against STORM-PhysNet), while it loses 0.006 at 24\,h (not significant). It
+(Holm-adjusted \(p=0.046\) and 0.023 against STORM-PhysNet), while it loses 0.006 at 24\,h (not significant). It
 also makes training far more reproducible: the standard deviation over seeds at 6 and 12\,h falls from
 0.014--0.027 for the variants with a Transformer encoder to 0.004--0.005. Whether this gain comes from the LSTM
 alone or from its combination with the residual, gate and loss is tested by removing one component at a time from
-the LSTM variant (Table~\ref{tab:paired_lstm}) \pend.
+the LSTM variant (Table~\ref{tab:paired_lstm}). Removing the delay stage changes no score (at most 0.003). Removing
+the training-loss terms other than the main likelihood (the physics terms as implemented, and the Dst, Kp, storm,
+variance and delay terms) lowers the 6 and 12\,h scores by 0.004 and 0.005, which is significant at 12\,h after Holm
+adjustment. With the Transformer encoder, removing the same terms changed no score significantly (the scores rose
+by 0.010 at 6 and 12\,h, within the larger spread over seeds). Since
+the physics terms were largely inactive (Section~\ref{sec:stormphysnet}), this small gain more likely comes from the
+auxiliary and variance terms. The removed gate, the LSTM with the persistence residual alone and the corrected
+physics loss complete the attribution \pend.
 
 \input{tables/tab_paired.tex}
 
