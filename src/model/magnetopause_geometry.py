@@ -109,12 +109,26 @@ class MagnetopauseGeometryFeatures(nn.Module):
         bz_idx:  int = 1,
         density_idx: int = None,   # set to a real column index if available
         n_theta_samples: int = 8,  # how many angles to sample the boundary at
+        pdyn_idx: int = None,      # measured dynamic pressure column (nPa), preferred over the n*V^2 estimate
+        n_features: int = 64,      # upper bound on input channels, for the unscaling buffers
     ):
         super().__init__()
         self.vsw_idx, self.bz_idx = vsw_idx, bz_idx
-        self.density_idx = density_idx
+        self.density_idx, self.pdyn_idx = density_idx, pdyn_idx
         thetas = torch.linspace(0.0, 2.0, n_theta_samples)  # radians, subsolar to ~115deg
         self.register_buffer("thetas", thetas)
+        # The pipeline feeds standardised inputs; Shue (1998) needs nT and nPa. set_input_scaler() stores the
+        # standardisation so forward() can undo it (x_phys = x * sd + mu). Identity until it is called. Saved in
+        # the checkpoint, so a reloaded model keeps the scaler it was trained with.
+        self.register_buffer("in_mu", torch.zeros(n_features))
+        self.register_buffer("in_sd", torch.ones(n_features))
+
+    def set_input_scaler(self, mu, sd):
+        """mu, sd: per-channel standardisation of the first len(mu) input channels."""
+        mu = torch.as_tensor(mu, dtype=torch.float32); sd = torch.as_tensor(sd, dtype=torch.float32)
+        assert mu.shape == sd.shape and mu.numel() <= self.in_mu.numel(), "scaler longer than the buffer"
+        self.in_mu.zero_(); self.in_sd.fill_(1.0)
+        self.in_mu[: mu.numel()] = mu.to(self.in_mu.device); self.in_sd[: sd.numel()] = sd.to(self.in_sd.device)
 
     def forward(self, x_sw: torch.Tensor) -> dict:
         """
@@ -129,10 +143,14 @@ class MagnetopauseGeometryFeatures(nn.Module):
                           angles (the "polar sphere" you asked about)
         """
         last = x_sw[:, -1, :]
+        F = last.size(-1)
+        last = last * self.in_sd[:F] + self.in_mu[:F]          # physical units (identity if no scaler was set)
         vsw = last[:, self.vsw_idx].clamp(min=1.0)
         bz = last[:, self.bz_idx]
 
-        if self.density_idx is not None and self.density_idx < x_sw.size(-1):
+        if self.pdyn_idx is not None and self.pdyn_idx < F:
+            pdyn = last[:, self.pdyn_idx]
+        elif self.density_idx is not None and self.density_idx < x_sw.size(-1):
             n_density = last[:, self.density_idx].clamp(min=0.1)
             pdyn = 1.6726e-6 * n_density * vsw.pow(2)
         else:

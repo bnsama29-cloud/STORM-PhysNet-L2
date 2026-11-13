@@ -86,6 +86,9 @@ class STORMPhysNet(nn.Module):
         gate_type:            str   = "bz",  # "bz" | "radiotrophic" | "cathode_anode"
         use_spectral_head:    bool  = False,  # additive spectral-parameterization head
         use_magnetopause:     bool  = False,  # Shue (1998) magnetopause compression features
+        vsw_idx:              int   = 0,      # input channels used by the magnetopause features
+        density_idx:          int   = None,
+        pdyn_idx:             int   = None,
     ):
         super().__init__()
         self.d_model    = d_model
@@ -106,7 +109,8 @@ class STORMPhysNet(nn.Module):
         )
 
         # ── 2. Input Projection & Positional Encoding ───────────────────────
-        # Concat SW (14 features) and Flux (1 feature) = 15 features total
+        # Concat the n_sw_features auxiliary channels and the flux history (+1); n_sw_features is set
+        # by the trainer from the data (17 in the paper pipeline, so 18 channels in total)
         self.input_proj = nn.Linear(n_sw_features + 1, d_model)
         self.pos_emb = nn.Parameter(torch.randn(1, seq_len, d_model) * 0.02)
         self.emb_dropout = nn.Dropout(dropout)
@@ -228,7 +232,8 @@ class STORMPhysNet(nn.Module):
         # tensor shapes, so existing checkpoints remain loadable.
         if use_magnetopause:
             self.mag_geo = MagnetopauseGeometryFeatures(
-                vsw_idx=0, bz_idx=bz_feature_idx, density_idx=None,
+                vsw_idx=vsw_idx, bz_idx=bz_feature_idx, density_idx=density_idx, pdyn_idx=pdyn_idx,
+                n_features=n_sw_features,
             )
             # 3 scalars (r0, alpha, compression) -> d_model
             self.mag_proj = nn.Sequential(
@@ -369,8 +374,12 @@ class STORMPhysNet(nn.Module):
         modules = [self.prop_delay, self.bz_gate]
         if self.backbone == "hybrid":
             modules += [self.itransformer, self.ssm, self.cross_modal]
+        elif self.backbone == "lstm":
+            modules += [self.input_proj, self.lstm]
         else:
             modules += [self.input_proj, self.transformer]
+        if self.mag_proj is not None:
+            modules += [self.mag_proj]
         for module in modules:
             for p in module.parameters():
                 p.requires_grad = False

@@ -90,6 +90,10 @@ class Trainer:
                 backbone             = m.get("backbone", "transformer"),
                 gate_type            = m.get("gate_type", "bz"),
                 use_spectral_head    = m.get("use_spectral_head", False),
+                use_magnetopause     = m.get("use_magnetopause", False),
+                vsw_idx              = m.get("vsw_idx", 0),
+                density_idx          = m.get("density_idx", None),
+                pdyn_idx             = m.get("pdyn_idx", None),
             ).to(self.device)
         print(f"[Model] Built {model_type.upper()} | Parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad):,}")
         return model
@@ -126,6 +130,10 @@ class Trainer:
             backbone             = m.get("backbone", "transformer"),
             gate_type            = m.get("gate_type", "bz"),
             use_spectral_head    = m.get("use_spectral_head", False),
+            use_magnetopause     = m.get("use_magnetopause", False),
+            vsw_idx              = m.get("vsw_idx", 0),
+            density_idx          = m.get("density_idx", None),
+            pdyn_idx             = m.get("pdyn_idx", None),
         ).to(self.device)
         return ensemble
 
@@ -153,6 +161,7 @@ class Trainer:
             base_weights = LossWeights(
                 horizon_weights=hw,
                 physics_horizon_scale=phs,
+                horizon_hours=[float(h) for h in self.cfg["data"]["forecast_horizons"]],
                 lambda_dst=0, lambda_kp=0, lambda_storm_cls=0,
                 lambda_mono=0, lambda_bz=0, lambda_smooth=0, lambda_delay=0,
                 lambda_var=0, lambda_epsilon=0
@@ -161,6 +170,7 @@ class Trainer:
             base_weights = LossWeights(
                 horizon_weights=hw,
                 physics_horizon_scale=phs,
+                horizon_hours=[float(h) for h in self.cfg["data"]["forecast_horizons"]],
                 lambda_dst       = 0.05,                        # Dst auxiliary task
                 lambda_kp        = 0.05,                        # Kp auxiliary task
                 lambda_storm_cls = 0.10,                        # storm classification
