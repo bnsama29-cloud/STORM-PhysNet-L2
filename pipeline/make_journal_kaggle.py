@@ -3,6 +3,7 @@
 
   python make_journal_kaggle.py <commit>              ->  kaggle/journal_account{1,2,3}.py   (campaign 1)
   python make_journal_kaggle.py <commit> --campaign 2 ->  kaggle/journal2_account{1,2}.py   (LSTM-encoder attribution)
+  python make_journal_kaggle.py <commit> --campaign 3 ->  kaggle/journal3_account{1,2,3}.py (final: campaign 2 + physfix)
 
 Each account trains a group of model families on all three test blocks (A, B, C; 10 seeds; horizons 1, 6, 12, 24 h)
 with the noise and driver probes, then uses its block-A checkpoints for cross-satellite transfer to GOES-16, GOES-18
@@ -22,6 +23,11 @@ CAMPAIGN1 = {   # account -> (families, families fine-tuned in the transfer step
 CAMPAIGN2 = {   # why does the LSTM encoder help? residual LSTM control and one-component ablations of the LSTM variant
     1: ("lstm_res,storm_lstm_no_gate", "lstm_res"),
     2: ("storm_lstm_no_delay,storm_lstm_no_physics", ""),
+}
+CAMPAIGN3 = {   # final campaign: campaign 2 (if not yet run) + the physics loss evaluated in physical units ("physfix")
+    1: ("lstm_res,storm_lstm_no_gate", "lstm_res"),
+    2: ("storm_lstm_no_delay,storm_lstm_no_physics", ""),
+    3: ("storm_physfix,storm_lstm_physfix", "storm_physfix,storm_lstm_physfix"),
 }
 
 TEMPLATE = r'''# STORM-PhysNet journal campaign __CAMP__, account __ACC__: families __FAMS__
@@ -116,8 +122,8 @@ print("ALL WORK DONE: send", name) if all(done) else print("NOT FINISHED: add th
 
 def main(commit, campaign=1):
     out = Path(__file__).resolve().parent / "kaggle"; out.mkdir(exist_ok=True)
-    groups = CAMPAIGN1 if campaign == 1 else CAMPAIGN2
-    hours = {1: {1: 7, 2: 7, 3: 5}, 2: {1: 4, 2: 3}}[campaign]
+    groups = {1: CAMPAIGN1, 2: CAMPAIGN2, 3: CAMPAIGN3}[campaign]
+    hours = {1: {1: 7, 2: 7, 3: 5}, 2: {1: 4, 2: 3}, 3: {1: 4, 2: 3, 3: 7}}[campaign]
     for acc, (fams, tfams) in groups.items():
         stem = f"journal_account{acc}" if campaign == 1 else f"journal{campaign}_account{acc}"
         zipname = f"journal_l2_account{acc}.zip" if campaign == 1 else f"journal_l2_c{campaign}_account{acc}.zip"

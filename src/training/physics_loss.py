@@ -77,6 +77,26 @@ class PhysicsInformedLoss(nn.Module):
         phs = torch.tensor(self.w.physics_horizon_scale, dtype=torch.float32)
         self.register_buffer("physics_horizon_scale", phs)
         self.register_buffer("horizon_hours", torch.tensor(self.w.horizon_hours, dtype=torch.float32))
+        self.in_mu = None   # set by set_input_scaler: physics terms then see physical units
+        self.in_sd = None
+
+    def set_input_scaler(self, mu, sd):
+        """Give the loss the block's input scaler (mean, std of the leading len(mu) channels of x_sw).
+
+        The physics terms compare inputs with thresholds in physical units (Bz < -10 nT for > 6 h, V in km/s).
+        The models see standardised inputs, so without a scaler these terms operate on standardised values
+        (the behaviour of the conference and first journal runs, kept as the default for reproducibility).
+        """
+        self.in_mu = torch.as_tensor(mu, dtype=torch.float32)
+        self.in_sd = torch.as_tensor(sd, dtype=torch.float32)
+
+    def physical_inputs(self, x_sw: torch.Tensor) -> torch.Tensor:
+        """x_sw in physical units on the scaled channels (unchanged if no scaler was set)."""
+        if self.in_mu is None:
+            return x_sw
+        n = self.in_mu.numel()
+        mu, sd = self.in_mu.to(x_sw.device), self.in_sd.to(x_sw.device)
+        return torch.cat([x_sw[..., :n] * sd + mu, x_sw[..., n:]], dim=-1)
 
     # ──────────────────────────────────────────────────────────────────────────
     # Primary Loss
@@ -365,9 +385,10 @@ class PhysicsInformedLoss(nn.Module):
         # Mask residuals/preds so physics is dominated by short horizon when
         # physics_horizon_scale = [1, 0, 0]
         res_h = residuals * scale.view(1, -1)
-        L_mono   = self._monotonicity_loss(res_h, x_sw)
-        L_eps    = self._epsilon_coupling_loss(res_h, y_flux, y_persist, x_sw)
-        L_bz_raw = self._bz_response_loss(flux_pred, y_flux, x_sw, y_persist)
+        x_phys   = self.physical_inputs(x_sw)
+        L_mono   = self._monotonicity_loss(res_h, x_phys)
+        L_eps    = self._epsilon_coupling_loss(res_h, y_flux, y_persist, x_phys)
+        L_bz_raw = self._bz_response_loss(flux_pred, y_flux, x_phys, y_persist)
         L_bz     = L_bz_raw * scale[0]          # only short-horizon physics weight
         long_scale = scale[1:].mean() if H > 1 else scale[0]
         L_smooth = self._smooth_loss(flux_pred) * long_scale
