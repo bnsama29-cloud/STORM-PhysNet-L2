@@ -1,0 +1,157 @@
+#!/usr/bin/env python
+"""LaTeX tables of the journal paper from numbers.json (journal_analysis.py). Needs \\usepackage{adjustbox,booktabs}.
+
+  python journal_tables.py --numbers journal_report/numbers.json --out paper/tables
+
+Families listed in ORDER but missing from numbers.json are printed as pending rows (\\pend{}), so the tables can
+be regenerated unchanged once the remaining Kaggle runs are in.
+"""
+import argparse, json
+from pathlib import Path
+
+ORDER = [  # (family, label, group)
+    ("persistence", "Persistence", "Reference"),
+    ("lstm", "LSTM", "Baselines"), ("mlp", "MLP", "Baselines"), ("cnn", "CNN", "Baselines"),
+    ("transformer", "Transformer (default size)", "Transformer controls"),
+    ("transformer_matched", "Transformer, matched", "Transformer controls"),
+    ("tf_ffn256", "Transformer, FFN 256", "Transformer controls"),
+    ("tf_ffn_res", "Residual Transformer", "Transformer controls"),
+    ("tf_res_fixed_ma", "\\quad + fixed average", "Transformer controls"),
+    ("tf_flux_only", "Flux-only Transformer", "Transformer controls"),
+    ("storm_bz", "STORM-PhysNet", "STORM-PhysNet and variants"),
+    ("storm_fixed_ma", "\\quad fixed average", "STORM-PhysNet and variants"),
+    ("storm_no_delay", "\\quad no delay", "STORM-PhysNet and variants"),
+    ("storm_no_gate", "\\quad no gate", "STORM-PhysNet and variants"),
+    ("storm_no_physics", "\\quad no physics loss", "STORM-PhysNet and variants"),
+    ("storm_cathode", "\\quad cathode--anode gate", "STORM-PhysNet and variants"),
+    ("storm_cathode_spec", "\\quad cathode--anode + spectral head", "STORM-PhysNet and variants"),
+    ("storm_radiotrophic", "\\quad radiotrophic gate", "STORM-PhysNet and variants"),
+    ("storm_lstm_backbone", "\\quad LSTM encoder", "STORM-PhysNet and variants"),
+    ("storm_magnetopause", "\\quad + magnetopause features", "STORM-PhysNet and variants"),
+]
+LABEL = {f: l.replace("\\quad ", "STORM-PhysNet, " if f.startswith("storm_") else "Residual TF ") for f, l, _ in ORDER}
+
+
+def f3(v): return "--" if v is None or v != v else f"{v:.3f}"
+
+
+def rows(N, key_fn, H, groups=True, only=None):
+    out, last = [], None
+    for f, lab, g in ORDER:
+        if only and f not in only: continue
+        if groups and g != last:
+            out.append(f"\\multicolumn{{{1 + len(H)}}}{{l}}{{\\textit{{{g}}}}} \\\\"); last = g
+        v = key_fn(f)
+        out.append(f"{lab} & " + (" & ".join(f3(x) for x in v) if v is not None else " & ".join(["\\pend{}"] * len(H))) + " \\\\")
+    return out
+
+
+def tabular(cols, head, body, caption, label, note="", star=False):
+    env = "table*" if star else "table"
+    return "\n".join([f"\\begin{{{env}}}[!t]", "\\centering", f"\\caption{{{caption}}}", f"\\label{{{label}}}", "\\footnotesize",
+                      "\\setlength{\\tabcolsep}{4pt}", "\\begin{adjustbox}{max width=\\linewidth}",
+                      f"\\begin{{tabular}}{{{cols}}}", "\\toprule", head + " \\\\", "\\midrule", *body, "\\bottomrule", "\\end{tabular}",
+                      "\\end{adjustbox}",
+                      (f"\n\\par\\vspace{{0.5ex}}{{\\footnotesize\\raggedright {note}\\par}}" if note else ""), f"\\end{{{env}}}", ""])
+
+
+def main():
+    ap = argparse.ArgumentParser(); ap.add_argument("--numbers", required=True); ap.add_argument("--out", required=True)
+    a = ap.parse_args(); N = json.load(open(a.numbers)); out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
+    H = N["horizons"]; hh = " & ".join(f"{h}\\,h" for h in H); cols = "l" + "c" * len(H)
+    have = set(N["main"])
+
+    def main_v(f):
+        if f == "persistence": return N["persistence"]["pe_clim"]
+        return N["main"][f]["pe_clim"] if f in have else None
+    (out / "tab_main.tex").write_text(tabular(cols, f"Model & {hh}", rows(N, main_v, H),
+        "GOES-15 test skill, $\\mathrm{PE}_\\mathrm{clim}$: mean over ten seeds and the three test blocks.", "tab:main",
+        "Seed standard deviations are below 0.01 for every learned model at every horizon (Fig.~\\ref{fig:horizon}). "
+        "\\pend{} marks runs still in progress.", star=False))
+
+    def blockA(f):
+        if f == "persistence": return None
+        return N["main"][f]["per_block"]["A"] if f in have else None
+    (out / "tab_blockA.tex").write_text(tabular(cols, f"Model & {hh}", rows(N, blockA, H, only=[o[0] for o in ORDER if o[0] != "persistence"]),
+        "Block A (strictly chronological test, Sep 2018--Mar 2020): $\\mathrm{PE}_\\mathrm{clim}$, mean over ten seeds.", "tab:blockA"))
+
+    # paired tests vs STORM-PhysNet
+    P = {}
+    for r in N.get("paired_vs_storm", []): P.setdefault(r["family"], {})[r["h"]] = r
+
+    def cell(r):
+        star = "$^{*}$" if r["p_holm"] < 0.05 else ""
+        return f"{r['diff']:+.4f}{star}"
+    body = []
+    for f, lab, g in ORDER:
+        if f in ("persistence", "storm_bz"): continue
+        body.append(f"{LABEL[f]} & " + (" & ".join(cell(P[f][h]) for h in H) if f in P else " & ".join(["\\pend{}"] * len(H))) + " \\\\")
+    (out / "tab_paired.tex").write_text(tabular(cols, f"STORM-PhysNet minus & {hh}", body,
+        "Difference in $\\mathrm{PE}_\\mathrm{clim}$, STORM-PhysNet minus each model (positive: STORM-PhysNet better).", "tab:paired",
+        "Paired $t$-test on the ten seed means (each averaged over blocks); $^{*}$ Holm-adjusted $p<0.05$ over all comparisons in the table."))
+
+    # storm-time RMSE and alert HSS
+    def sr(f): return N["storm_rmse"].get(f) if f in N["storm_rmse"] else None
+    def hs(f): return N["alert_hss"].get(f) if f in N["alert_hss"] else None
+    two = ["\\multicolumn{%d}{c}{Storm-time RMSE} & \\multicolumn{%d}{c}{Alert HSS} \\\\" % (len(H), len(H))]
+    body = []
+    for f, lab, g in ORDER:
+        a_, b_ = sr(f), hs(f)
+        cells = (" & ".join(f3(x) for x in a_) if a_ else " & ".join(["\\pend{}"] * len(H))) + " & " + \
+                (" & ".join(f3(x) for x in b_) if b_ else " & ".join(["\\pend{}"] * len(H)))
+        body.append(f"{lab} & {cells} \\\\")
+    (out / "tab_storm.tex").write_text(tabular("l" + "c" * 2 * len(H), " & " + two[0].rstrip(" \\") + " \\\\\nModel & " + hh + " & " + hh, body,
+        "Storm-time RMSE (log$_{10}$ flux; Dst $\\le -50$\\,nT at the target hour) and Heidke skill score for exceeding 1000\\,pfu.",
+        "tab:storm", "Seed means over the three blocks. Lower RMSE and higher HSS are better.", star=True))
+
+    # probes
+    pk = [("noise0.5", "$\\sigma=0.5$"), ("noise1", "$\\sigma=1$"), ("noise2", "$\\sigma=2$"), ("out24", "24\\,h outage"),
+          ("out72", "no drivers"), ("lag3", "Kp/Dst 3\\,h late")]
+    i12 = H.index(12); i24 = H.index(24) if 24 in H else len(H) - 1
+    body = []
+    for f, lab, g in ORDER:
+        if f == "persistence": continue
+        if f in N["probes"]:
+            body.append(f"{lab} & " + " & ".join(f"{N['probes'][f][k][i12]:.3f}" for k, _ in pk) + " \\\\")
+        elif f not in have:
+            body.append(f"{lab} & " + " & ".join(["\\pend{}"] * len(pk)) + " \\\\")
+    (out / "tab_probes.tex").write_text(tabular("l" + "c" * len(pk), "Model & " + " & ".join(n for _, n in pk), body,
+        "Robustness probes: 12\\,h $\\mathrm{PE}_\\mathrm{clim}$ with degraded inputs (seed means over blocks).", "tab:probes",
+        "Noise: Gaussian noise of standard deviation $\\sigma$ (in units of each standardised channel) on every input channel except "
+        "the observed-hour mask. Outage: driver channels held at their last value for the final 24 input hours. No drivers: "
+        "driver channels at their training mean for the whole input. Clean values are in Table~\\ref{tab:main}.", star=True))
+
+    # calibration
+    body = []
+    for f, lab, g in ORDER:
+        if not f.startswith("storm_"): continue
+        c = N["calibration"].get(f)
+        if c: body.append(f"{lab} & " + " & ".join(f"{c['cov68'][i]:.2f} / {c['cov95'][i]:.2f}" for i in range(len(H))) + " \\\\")
+        else: body.append(f"{lab} & " + " & ".join(["\\pend{}"] * len(H)) + " \\\\")
+    (out / "tab_calib.tex").write_text(tabular(cols, f"Model & {hh}", body,
+        "Coverage of the predicted $1\\sigma$ / $1.96\\sigma$ intervals (nominal 0.68 / 0.95).", "tab:calib",
+        "Fraction of test targets inside $\\hat y\\pm\\hat\\sigma$ and $\\hat y\\pm1.96\\hat\\sigma$, averaged over seeds and blocks."))
+
+    # transfer
+    names = {"goes16": "GOES-16", "goes18": "GOES-18", "grasp": "GSAT-19 GRASP"}
+    var = [("zeroshot", "zero-shot"), ("heads", "heads"), ("full", "full"), ("scratch", "scratch")]
+    body = []
+    for t in ("goes16", "goes18", "grasp"):
+        if t not in N["transfer"]: continue
+        T = N["transfer"][t]
+        body.append(f"\\multicolumn{{5}}{{l}}{{\\textit{{{names[t]}}} (persistence {T['persistence']['-'][i12]:.3f})}} \\\\")
+        for f, lab, g in ORDER:
+            if f == "persistence": continue
+            if f in T:
+                body.append(f"{lab} & " + " & ".join(f3(T[f][v][i12]) if v in T[f] else "--" for v, _ in var) + " \\\\")
+            elif f not in have:
+                body.append(f"{lab} & " + " & ".join(["\\pend{}"] * len(var)) + " \\\\")
+    (out / "tab_transfer.tex").write_text(tabular("lcccc", "Model & " + " & ".join(n for _, n in var), body,
+        "Cross-satellite transfer from the block-A GOES-15 models: 12\\,h $\\mathrm{PE}_\\mathrm{clim}$, mean over folds and ten seeds.",
+        "tab:transfer", "Heads: encoder frozen, output layers retrained. Full: all weights fine-tuned. Scratch: trained only on the "
+        "target satellite. ``--'': not run (zero-shot only for these families).", star=True))
+    print("wrote", sorted(p.name for p in out.glob("*.tex")))
+
+
+if __name__ == "__main__":
+    main()
