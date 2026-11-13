@@ -103,7 +103,7 @@ def main():
     # attribution of the LSTM-encoder variant (campaigns 2 and 3)
     PL = {}
     for r in N.get("paired_vs_lstm", []): PL.setdefault(r["family"], {})[r["h"]] = r
-    lstm_rows = [("lstm_res", "LSTM with persistence residual only"), ("storm_lstm_no_gate", "no gate"),
+    lstm_rows = [("lstm_res", "Residual LSTM"), ("storm_lstm_no_gate", "no gate"),
                  ("storm_lstm_no_delay", "no delay"), ("storm_lstm_no_physics", "no physics loss"),
                  ("storm_lstm_physfix", "physical-unit loss")]
     body = [f"{lab} & " + (" & ".join(cell(PL[f][h]) for h in H) if f in PL else " & ".join(["\\pend{}"] * len(H))) + " \\\\"
@@ -155,24 +155,29 @@ def main():
         "Coverage of the predicted $1\\sigma$ / $1.96\\sigma$ intervals (nominal 0.68 / 0.95).", "tab:calib",
         "Fraction of test targets inside $\\hat y\\pm\\hat\\sigma$ and $\\hat y\\pm1.96\\hat\\sigma$, averaged over seeds and blocks.", star=True))
 
-    # transfer
-    names = {"goes16": "GOES-16", "goes18": "GOES-18", "grasp": "GSAT-19 GRASP"}
-    var = [("zeroshot", "zero-shot"), ("heads", "heads"), ("full", "full"), ("scratch", "scratch")]
-    body = []
-    for t in ("goes16", "goes18", "grasp"):
-        if t not in N["transfer"]: continue
-        T = N["transfer"][t]
-        body.append(f"\\multicolumn{{5}}{{l}}{{\\textit{{{names[t]}}} (persistence {T['persistence']['-'][i12]:.3f})}} \\\\")
-        for f, lab, g in ORDER:
-            if f == "persistence": continue
-            if f in T:
-                body.append(f"{lab} & " + " & ".join(f3(T[f][v][i12]) if v in T[f] else "--" for v, _ in var) + " \\\\")
-            elif f not in have:
-                body.append(f"{lab} & " + " & ".join(["\\pend{}"] * len(var)) + " \\\\")
-    (out / "tab_transfer.tex").write_text(tabular("lcccc", "Model & " + " & ".join(n for _, n in var), body,
+    # transfer: one wide table, satellites side by side
+    names = {"goes16": "GOES-16 (75\\textdegree W)", "goes18": "GOES-18 (137\\textdegree W)", "grasp": "GSAT-19 GRASP (48\\textdegree E)"}
+    var = [("zeroshot", "zero"), ("heads", "heads"), ("full", "full"), ("scratch", "scr.")]
+    sats = [t for t in ("goes16", "goes18", "grasp") if t in N["transfer"]]
+    nv = len(var)
+    head = (" & " + " & ".join(f"\\multicolumn{{{nv}}}{{c}}{{{names[t]}}}" for t in sats) + " \\\\\n"
+            + "".join(f"\\cmidrule(lr){{{2 + k * nv}-{1 + (k + 1) * nv}}}" for k in range(len(sats))) + "\n"
+            + "Model & " + " & ".join(" & ".join(n for _, n in var) for _ in sats))
+    body = ["Persistence & " + " & ".join(f"\\multicolumn{{{nv}}}{{c}}{{{N['transfer'][t]['persistence']['-'][i12]:.3f}}}" for t in sats) + " \\\\"]
+    for f, lab, g in ORDER:
+        if f == "persistence": continue
+        if any(f in N["transfer"][t] for t in sats):
+            cells = []
+            for t in sats:
+                T = N["transfer"][t]
+                cells += [f3(T[f][v][i12]) if f in T and v in T[f] else "--" for v, _ in var]
+            body.append(f"{lab} & " + " & ".join(cells) + " \\\\")
+        elif f not in have:
+            body.append(f"{lab} & " + " & ".join(["\\pend{}"] * (nv * len(sats))) + " \\\\")
+    (out / "tab_transfer.tex").write_text(tabular("l" + "c" * (nv * len(sats)), head, body,
         "Cross-satellite transfer from the block-A GOES-15 models: 12\\,h $\\mathrm{PE}_\\mathrm{clim}$, mean over folds and ten seeds.",
-        "tab:transfer", "Heads: encoder frozen, output layers retrained. Full: all weights fine-tuned. Scratch: trained only on the "
-        "target satellite. ``--'': not run (zero-shot only for these families).", star=True))
+        "tab:transfer", "Zero: zero-shot, no retraining. Heads: encoder frozen, output layers retrained. Full: all weights fine-tuned. "
+        "Scr.: trained from scratch on the target satellite only. ``--'': not run (zero-shot only for these models).", star=True))
     print("wrote", sorted(p.name for p in out.glob("*.tex")))
 
 
