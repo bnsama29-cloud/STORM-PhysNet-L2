@@ -72,13 +72,13 @@ def main():
         "GOES-15 test skill, $\\mathrm{PE}_\\mathrm{clim}$: mean over ten seeds and the three test blocks.", "tab:main",
         "Seed standard deviations are at most 0.011 for the other controls without residual, 0.018 for the residual Transformers, "
         "0.027 for the STORM-PhysNet variants with a Transformer encoder, 0.005 with the LSTM encoder, and 0.053 for the CNN. "
-        "\\pend{} marks runs still in progress.", star=False))
+        "\\pend{} marks runs still in progress.", star=True))
 
     def blockA(f):
         if f == "persistence": return None
         return N["main"][f]["per_block"]["A"] if f in have else None
     (out / "tab_blockA.tex").write_text(tabular(cols, f"Model & {hh}", rows(N, blockA, H, only=[o[0] for o in ORDER if o[0] != "persistence"]),
-        "Block A (strictly chronological test, Sep 2018--Mar 2020): $\\mathrm{PE}_\\mathrm{clim}$, mean over ten seeds.", "tab:blockA"))
+        "Block A (strictly chronological test, Sep 2018--Mar 2020): $\\mathrm{PE}_\\mathrm{clim}$, mean over ten seeds.", "tab:blockA", star=True))
 
     # paired tests vs STORM-PhysNet
     P = {}

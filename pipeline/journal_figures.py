@@ -32,7 +32,8 @@ COL = {  # Okabe-Ito colour-blind-safe palette (line styles also differ where co
     "storm_bz": "#D55E00", "storm_lstm_backbone": "#E69F00", "tf_ffn_res": "#0072B2", "transformer_matched": "#CC79A7",
     "lstm": "#009E73", "mlp": "#56B4E9", "tf_flux_only": "#F0E442", "persistence": "#555555", "tf_res_fixed_ma": "#0072B2",
     "transformer": "#CC79A7", "cnn": "#999999", "tf_ffn256": "#56B4E9"}
-plt.rcParams.update({"font.size": 8, "axes.titlesize": 8, "axes.labelsize": 8, "legend.fontsize": 7,
+plt.rcParams.update({"font.size": 9, "axes.titlesize": 9, "axes.labelsize": 9, "legend.fontsize": 8,
+                     "xtick.labelsize": 8.5, "ytick.labelsize": 8.5, "lines.linewidth": 1.2,
                      "axes.spines.top": False, "axes.spines.right": False, "savefig.dpi": 300, "savefig.bbox": "tight"})
 
 
@@ -99,7 +100,7 @@ def fig_noise(N, out):
         ax.set_title(f"{h} h"); ax.set_xticks(sig); ax.set_xlabel(r"noise $\sigma$")
         if i == 0: ax.set_ylabel(r"PE$_\mathrm{clim}$")
         ax.set_ylim(max(-0.2, ax.get_ylim()[0]), 1.0)
-    axs[0].legend(frameon=False, fontsize=6); fig.tight_layout(); save(fig, out, "fig_noise.png")
+    axs[0].legend(frameon=False, fontsize=8); fig.tight_layout(); save(fig, out, "fig_noise.png")
 
 
 # ------------------------------------------------------------------------------------------------ predicted vs observed
@@ -133,7 +134,7 @@ def fig_case_goes15(P, meta, out, block="B", start="2015-03-14", end="2015-04-01
             ax.plot(tt, y, color=COL[f], lw=1.0, label=LABEL[f])
         ax.axhline(3.0, color="#999999", lw=0.6, ls=":"); ax.set_ylabel(r"log$_{10}$ flux")
         ax.text(0.01, 0.92, f"{h} h ahead", transform=ax.transAxes)
-    axs[0].legend(frameon=False, ncol=5, fontsize=6, loc="lower center", bbox_to_anchor=(0.5, 1.02))
+    axs[0].legend(frameon=False, ncol=3, fontsize=8, loc="lower center", bbox_to_anchor=(0.5, 1.02))
     axs[1].xaxis.set_major_locator(mdates.DayLocator(interval=3)); axs[1].xaxis.set_major_formatter(mdates.DateFormatter("%d %b"))
     axs[1].set_xlabel("2015 (valid time)"); fig.tight_layout(); save(fig, out, "fig_case_2015.png")
 
@@ -164,7 +165,7 @@ def fig_case_goes16(tdirs, out, start="2024-05-08", end="2024-05-25", h=12):
     for (key, lab, c, ls, lw, _), y in zip(curves, ys): ax.plot(tt, y, color=c, ls=ls, lw=lw, label=lab)
     ax.axhline(3.0, color="#999999", lw=0.6, ls=":"); ax.set_ylabel(r"log$_{10}$ flux (12 h ahead)"); ax.set_xlabel("2024 (valid time)")
     ax.xaxis.set_major_locator(mdates.DayLocator(interval=2)); ax.xaxis.set_major_formatter(mdates.DateFormatter("%d %b"))
-    ax.legend(frameon=False, ncol=3, fontsize=6, loc="lower center", bbox_to_anchor=(0.5, 1.0))
+    ax.legend(frameon=False, ncol=3, fontsize=8, loc="lower center", bbox_to_anchor=(0.5, 1.0))
     fig.tight_layout(); save(fig, out, "fig_case_2024.png")
 
 
@@ -173,7 +174,7 @@ def fig_calibration(P, meta, out):
     levels = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95])
     from scipy.stats import norm
     z = norm.ppf(0.5 + levels / 2); H = [int(h) for h in meta[sorted(meta)[0]]["horizons"]]
-    fig, axs = plt.subplots(1, 2, figsize=(COL2 * 0.62, 2.4), sharey=True)
+    fig, axs = plt.subplots(1, 2, figsize=(COL1, 2.3), sharey=True)
     for ax, f in zip(axs, ("storm_bz", "storm_lstm_backbone")):
         for i, h in enumerate(H):
             cov = []
@@ -204,7 +205,7 @@ def fig_transfer(N, out):
                        color=COL[f], label=LABEL[f])
         ax.axhline(T[t]["persistence"]["-"][i12], ls="--", color=COL["persistence"], lw=1)
         ax.set_xticks(x); ax.set_xticklabels(["zero-shot", "heads", "full"]); ax.set_title(name[t]); ax.set_ylim(-0.1, 0.9)
-    np.atleast_1d(axs)[0].set_ylabel(r"12 h PE$_\mathrm{clim}$"); np.atleast_1d(axs)[0].legend(frameon=False, fontsize=6, loc="upper left")
+    np.atleast_1d(axs)[0].set_ylabel(r"12 h PE$_\mathrm{clim}$"); np.atleast_1d(axs)[0].legend(frameon=False, fontsize=8, loc="upper left")
     fig.tight_layout(); save(fig, out, "fig_transfer.png")
 
 
@@ -226,7 +227,7 @@ def fig_coverage_and_overlap(repo, out):
              (3, "2018-02-01", "2018-09-01", "G1–3")]
     for i, a, b, lab in tests:
         ax.axvspan(pd.Timestamp(a), pd.Timestamp(b), ymin=(i + 0.1) / 4, ymax=(i + 0.9) / 4, color="#D55E00", alpha=0.25)
-        ax.text(pd.Timestamp(a), i + 0.28, lab, fontsize=6, color="#8a3b00")
+        ax.text(pd.Timestamp(a), i + 0.28, lab, fontsize=8, color="#8a3b00")
     ax.axvspan(pd.Timestamp("2017-03-11"), pd.Timestamp("2018-09-07"), ymin=0.02, ymax=0.23, color="#0072B2", alpha=0.2)
     ax.set_yticks(range(4)); ax.set_yticklabels([r[0] for r in rows]); ax.set_ylim(-0.5, 3.5)
     save(fig, out, "fig_data.png")

@@ -120,16 +120,23 @@ a split that interleaves months of the same year. \citet{forsyth2020} framed GOE
 exceedance of flux thresholds and found persistence hard to beat at the lower threshold. \citet{tan2024}
 found a Transformer only slightly, and not significantly, better than an attention-based LSTM, and
 \citet{sun2024,sun2025} compared LSTM and Transformer models at lead times of 1--24\,h and improved daily
-fluence prediction with pre-training. None of these studies reports significance tests over repeated training
-runs. The Temporal Fusion Transformer \citep{lim2021} already combines gating with forecasts at several lead
+fluence prediction with pre-training. In this journal, \citet{wangj2023} predicted GEO electron fluxes above 0.8 and 2\,MeV with neural
+networks driven by solar-wind parameters, \citet{geletaw2023} evaluated the SNB3GEO model against LANL and
+GOES-13 data and suggested training on all GEO missions, \citet{geletaw2024} ranked the AE index and solar-wind
+speed as the dominant drivers of the \(>2\)\,MeV flux, and \citet{azragorskaya2026} forecast daily GEO fluence
+up to three days ahead with gradient-boosted trees and an LSTM, finding the LSTM more stable in training and a
+shift from an autoregressive regime on the first day to a driver-dominated one by the third. None of these
+studies reports significance tests over repeated training runs. The Temporal Fusion Transformer \citep{lim2021} already combines gating with forecasts at several lead
 times; our gate differs mainly in being conditioned on the interplanetary magnetic field.
 
 On evaluation, skill should be reported against persistence as well as climatology
-\citep{camporeale2019,morley2018}; information leaking from the test period into training is a common cause
+\citep{camporeale2019,morley2018}, and models should be validated transparently against the needs of their
+users before they move into operations \citep{kuznetsova2026}; information leaking from the test period into training is a common cause
 of results that do not reproduce \citep{kapoor2023}; and ordinary cross-validation suits time series only when
 the errors are uncorrelated \citep{bergmeir2018}. For probabilistic forecasts, proper scoring rules such as the
 continuous ranked probability score (CRPS) assess calibration and sharpness together \citep{gneiting2007}.
-Across satellites, \citet{zhao2025} merged cross-calibrated FY-4A and GOES-15 records for training, and
+Across satellites, \citet{zhao2025} and \citet{wangb2026} intercalibrated FY-4A and GOES-15 records with neural
+networks and showed that the fused record improves forecasts, and
 \citet{rodriguez2025} assessed the consistency of GOES-8 to GOES-15 electron fluxes. We know of no study that
 compares zero-shot use, fine-tuning and training from scratch on new GEO sensors.
 
@@ -273,7 +280,8 @@ and early stopping on the fold's validation data.
 \includegraphics[width=\textwidth]{figures/fig_architecture.pdf}
 \caption{STORM-PhysNet. Orange: the physics-inspired components tested in this study (delay stage and \(B_z\)
 gate); blue: the encoder, a Transformer in the original model and an LSTM in the best variant; green: one output
-head per lead time, each predicting a change from persistence and its uncertainty. The diagram was drawn in TikZ
+head per lead time, each predicting a change from persistence and its uncertainty, which is added to the last
+observed value \(y_t\) (dashed path). The diagram was drawn in TikZ
 with code written with the assistance of Claude Opus 5.5 (Anthropic) and checked by the author against the model code.}
 \label{fig:arch}
 \end{figure*}
@@ -572,7 +580,8 @@ change from persistence) and of inputs, not through specialised layers or loss t
 \subsection{Why does the LSTM encoder help?}
 With 72 hourly inputs and a target that depends mostly on the recent past, an encoder that reads the window in
 time order with a memory may suit the problem better than one in which every hour attends to every other. The
-lower spread over seeds also suggests that the Transformer variants are harder to train with the combined loss.
+lower spread over seeds also suggests that the Transformer variants are harder to train with the combined loss;
+\citet{azragorskaya2026} likewise found an LSTM more stable in training than tree ensembles for daily GEO fluence.
 The second campaign separates the effect of the LSTM from that of the residual and of the other STORM-PhysNet
 components \pend.
 
