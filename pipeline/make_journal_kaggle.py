@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """Write the Kaggle scripts of the journal campaign (one per Kaggle account).
 
-  python make_journal_kaggle.py <commit>   ->  kaggle/journal_account{1,2,3}.py
+  python make_journal_kaggle.py <commit>              ->  kaggle/journal_account{1,2,3}.py   (campaign 1)
+  python make_journal_kaggle.py <commit> --campaign 2 ->  kaggle/journal2_account{1,2}.py   (LSTM-encoder attribution)
 
 Each account trains a group of model families on all three test blocks (A, B, C; 10 seeds; horizons 1, 6, 12, 24 h)
 with the noise and driver probes, then uses its block-A checkpoints for cross-satellite transfer to GOES-16, GOES-18
@@ -13,19 +14,23 @@ import sys
 from pathlib import Path
 
 REPO_URL = "https://github.com/bnsama29-cloud/STORM-PhysNet-L2"
-GROUPS = {   # account -> (families, families fine-tuned in the transfer step)
+CAMPAIGN1 = {   # account -> (families, families fine-tuned in the transfer step)
     1: ("storm_cathode,storm_cathode_spec,storm_radiotrophic", "storm_cathode,storm_cathode_spec,storm_radiotrophic"),
     2: ("storm_no_physics,storm_magnetopause,storm_lstm_backbone", "storm_no_physics,storm_magnetopause,storm_lstm_backbone"),
     3: ("transformer,tf_ffn256,mlp,cnn", "transformer"),
 }
+CAMPAIGN2 = {   # why does the LSTM encoder help? residual LSTM control and one-component ablations of the LSTM variant
+    1: ("lstm_res,storm_lstm_no_gate", "lstm_res"),
+    2: ("storm_lstm_no_delay,storm_lstm_no_physics", ""),
+}
 
-TEMPLATE = r'''# STORM-PhysNet journal campaign, account __ACC__ of 3: families __FAMS__
+TEMPLATE = r'''# STORM-PhysNet journal campaign __CAMP__, account __ACC__: families __FAMS__
 # Blocks A, B and C (10 seeds each, horizons 1/6/12/24 h, noise and driver probes), then cross-satellite transfer
 # (GOES-16, GOES-18, GSAT-19 GRASP) from the block-A models.
 # HOW TO USE: Kaggle -> Create -> New Notebook -> paste this whole file into the first cell.
 # Settings (right sidebar): Accelerator = GPU T4 x2, Internet = ON (needs a phone-verified account).
 # Then Save Version -> Save & Run All (Commit). Expected time: about __HOURS__ hours.
-# The last log line says "ALL WORK DONE" (download journal_l2_account__ACC__.zip and send it) or "NOT FINISHED".
+# The last log line says "ALL WORK DONE" (download __ZIP__ and send it) or "NOT FINISHED".
 # TO CONTINUE ANOTHER DAY: open the notebook -> Add Input -> Notebook Output Files -> pick this notebook (its latest
 # version) -> Save Version -> Save & Run All. Finished runs are skipped; nothing is repeated.
 SESSION_HOURS = 10          # keep <= 10.5 (Kaggle stops a session at 12 h)
@@ -89,36 +94,42 @@ for b in ("A", "B", "C"):
 def n_tr(tag): return len(glob.glob(f"{W}/tj2/transfer_preds{tag}_s*.npz"))
 if n_preds("A") >= 10 * NFAM:
     for tag, fams, variants in (("_zs", FAMS, "zeroshot"), ("_ft", TFAMS, "heads,full")):
-        if n_tr(tag) >= 10 or budget() <= 0: continue
+        if not fams or n_tr(tag) >= 10 or budget() <= 0: continue
         run_parallel(lambda seeds, fams=fams, variants=variants, tag=tag:
                      f"python -u transfer_journal.py --repo {REPO} --ckpt_dir {W}/j2_A/ckpt_A --meta {W}/j2_A/meta_A.npz "
                      f"--out {W}/tj2 --seeds {seeds} --horizons 1,6,12,24 --families {fams} --variants {variants} "
                      f"--tag {tag} --stop_after_hours {max(0.0, budget() - 0.6):.2f}", f"transfer{tag}")
 
-# ---- 3. zip everything except checkpoints (download journal_l2_account__ACC__.zip from the Output tab) ----
-name = f"{W}/journal_l2_account__ACC__.zip"
+# ---- 3. zip everything except checkpoints (download __ZIP__ from the Output tab) ----
+name = f"{W}/__ZIP__"
 with zipfile.ZipFile(name, "w", zipfile.ZIP_DEFLATED) as zf:
     for d in ("j2_A", "j2_B", "j2_C", "tj2"):
         for f in glob.glob(f"{W}/{d}/*"):
             if os.path.isfile(f) and not f.endswith(".pt") and ".tmp." not in f: zf.write(f, os.path.relpath(f, W))
     for f in glob.glob(f"{W}/*.log"): zf.write(f, "logs/" + os.path.basename(f))
-done = [n_preds(b) >= 10 * NFAM for b in "ABC"] + [n_tr("_zs") >= 10, n_tr("_ft") >= 10]
+done = [n_preds(b) >= 10 * NFAM for b in "ABC"] + [n_tr("_zs") >= 10, (not TFAMS) or n_tr("_ft") >= 10]
 print(round(os.path.getsize(name) / 1e6, 1), "MB ->", name, f"| session time {(time.time() - T0) / 3600:.1f} h")
 print(f"runs: A {n_preds('A')}, B {n_preds('B')}, C {n_preds('C')} of {10 * NFAM} each; transfer seeds: zero-shot {n_tr('_zs')}/10, fine-tune {n_tr('_ft')}/10")
 print("ALL WORK DONE: send", name) if all(done) else print("NOT FINISHED: add this notebook's output as an Input and Save & Run All again.")
 '''
 
 
-def main(commit):
+def main(commit, campaign=1):
     out = Path(__file__).resolve().parent / "kaggle"; out.mkdir(exist_ok=True)
-    hours = {1: 7, 2: 7, 3: 5}
-    for acc, (fams, tfams) in GROUPS.items():
+    groups = CAMPAIGN1 if campaign == 1 else CAMPAIGN2
+    hours = {1: {1: 7, 2: 7, 3: 5}, 2: {1: 4, 2: 3}}[campaign]
+    for acc, (fams, tfams) in groups.items():
+        stem = f"journal_account{acc}" if campaign == 1 else f"journal{campaign}_account{acc}"
+        zipname = f"journal_l2_account{acc}.zip" if campaign == 1 else f"journal_l2_c{campaign}_account{acc}.zip"
         s = (TEMPLATE.replace("__ACC__", str(acc)).replace("__FAMS__", fams).replace("__TFAMS__", tfams)
-             .replace("__COMMIT__", commit).replace("__REPO_URL__", REPO_URL).replace("__HOURS__", str(hours[acc])))
-        left = [k for k in ("__ACC__", "__FAMS__", "__TFAMS__", "__COMMIT__", "__REPO_URL__", "__HOURS__") if k in s]
+             .replace("__COMMIT__", commit).replace("__REPO_URL__", REPO_URL).replace("__HOURS__", str(hours[acc]))
+             .replace("__CAMP__", str(campaign)).replace("__ZIP__", zipname))
+        left = [k for k in ("__ACC__", "__FAMS__", "__TFAMS__", "__COMMIT__", "__REPO_URL__", "__HOURS__", "__CAMP__", "__ZIP__") if k in s]
         assert not left, f"unfilled placeholders {left}"
-        p = out / f"journal_account{acc}.py"; p.write_text(s); print("wrote", p)
+        p = out / f"{stem}.py"; p.write_text(s); print("wrote", p)
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    import argparse
+    ap = argparse.ArgumentParser(); ap.add_argument("commit"); ap.add_argument("--campaign", type=int, default=1)
+    a = ap.parse_args(); main(a.commit, a.campaign)

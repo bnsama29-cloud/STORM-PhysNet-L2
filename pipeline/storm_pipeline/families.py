@@ -6,7 +6,7 @@ The default families reproduce the AGERS 2026 conference runs; the "journal addi
 STORM-PhysNet code base (alternative gates, spectral head, encoder backbones, magnetopause features, baselines).
 """
 from .data import SW_COLS, SCALED, HSTEPS
-from .models_extra import FFNResTransformer, FluxOnly, FixedTwoPointAverage, SmoothedInput
+from .models_extra import FFNResTransformer, FluxOnly, FixedTwoPointAverage, SmoothedInput, ResLSTM
 
 SPEC = {
     "lstm": dict(model_type="lstm", ablation="none", match=False),
@@ -30,6 +30,11 @@ SPEC = {
                                model=dict(gate_type="cathode_anode", use_spectral_head=True)),
     "storm_radiotrophic": dict(model_type="storm_physnet", ablation="none", match=False, model=dict(gate_type="radiotrophic")),
     "storm_lstm_backbone": dict(model_type="storm_physnet", ablation="none", match=False, model=dict(backbone="lstm")),
+    # attribution of the LSTM-encoder variant (second journal campaign)
+    "lstm_res": dict(model_type="lstm", ablation="none", match=False),                 # built separately (ResLSTM)
+    "storm_lstm_no_gate": dict(model_type="storm_physnet", ablation="no_bz_gate", match=False, model=dict(backbone="lstm")),
+    "storm_lstm_no_delay": dict(model_type="storm_physnet", ablation="no_delay", match=False, model=dict(backbone="lstm")),
+    "storm_lstm_no_physics": dict(model_type="storm_physnet", ablation="no_physics", match=False, model=dict(backbone="lstm")),
     "storm_magnetopause": dict(model_type="storm_physnet", ablation="none", match=False,
                                model=dict(use_magnetopause=True, vsw_idx=SW_COLS.index("vsw"),
                                           density_idx=SW_COLS.index("density"), pdyn_idx=SW_COLS.index("pdyn"))),
@@ -56,6 +61,8 @@ def build(family, trainer, n_sw, device, scaler=None):
         return SmoothedInput(FFNResTransformer(n_sw, n_h=n_h)).to(device)
     if family == "storm_fixed_ma":
         m = trainer.build_model(n_sw); m.prop_delay = FixedTwoPointAverage().to(device); return m
+    if family == "lstm_res":
+        return ResLSTM(n_sw, n_h=n_h).to(device)
     if family == "tf_ffn256":
         return FFNResTransformer(n_sw, n_h=n_h, residual=False).to(device)
     m = trainer.build_model(n_sw).to(device)

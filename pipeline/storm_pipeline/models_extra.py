@@ -33,6 +33,25 @@ class FFNResTransformer(nn.Module):
         return {"flux_pred": out, "delay_loss": torch.zeros((), device=out.device), "log_var": torch.zeros_like(out)}
 
 
+class ResLSTM(nn.Module):
+    """LSTM control for the LSTM-encoder variant of STORM-PhysNet: same input embedding width (d_model=128) and depth
+    (2 layers) as that encoder, last-step head, OPTIONAL residual-over-persistence output. No delay, gate or physics loss."""
+
+    def __init__(self, n_sw_features, d_model=128, layers=2, n_h=3, residual=True, dropout=0.1):
+        super().__init__()
+        self.residual = residual
+        self.emb = nn.Linear(n_sw_features + 1, d_model)
+        self.enc = nn.LSTM(d_model, d_model, num_layers=layers, batch_first=True, dropout=dropout)
+        self.fc = nn.Linear(d_model, n_h)
+
+    def forward(self, x_sw, x_flux, y_persist=None, **kw):
+        x = torch.cat([torch.nan_to_num(x_sw), torch.nan_to_num(x_flux)], -1)
+        h, _ = self.enc(self.emb(x))
+        out = self.fc(h[:, -1])
+        if self.residual and y_persist is not None: out = y_persist + out
+        return {"flux_pred": out, "delay_loss": torch.zeros((), device=out.device), "log_var": torch.zeros_like(out)}
+
+
 class FluxOnly(nn.Module):
     """Wrap a model so it sees NO solar-wind/geomagnetic information: only flux history, the within-hour flux std and
     the observed-hour mask."""
