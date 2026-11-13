@@ -10,7 +10,7 @@
 Model & zero-shot & heads & full & scratch \\
 \midrule
 \multicolumn{5}{l}{\textit{GOES-16} (persistence 0.201)} \\
-LSTM, residual & \pend{} & \pend{} & \pend{} & \pend{} \\
+LSTM, residual & 0.455 & 0.628 & 0.680 & -- \\
 MLP & -0.065 & -- & -- & -- \\
 CNN & -0.497 & -- & -- & -- \\
 Transformer (default size) & 0.010 & 0.617 & 0.682 & -- \\
@@ -24,13 +24,13 @@ STORM-PhysNet & 0.306 & 0.630 & 0.672 & 0.669 \\
 \quad cathode--anode + spectral head & 0.301 & 0.636 & 0.674 & -- \\
 \quad radiotrophic gate & 0.319 & 0.637 & 0.675 & -- \\
 \quad LSTM encoder & 0.371 & 0.640 & 0.659 & -- \\
-\quad LSTM encoder, no gate & \pend{} & \pend{} & \pend{} & \pend{} \\
+\quad LSTM encoder, no gate & 0.429 & -- & -- & -- \\
 \quad LSTM encoder, no delay & 0.381 & -- & -- & -- \\
 \quad LSTM encoder, no physics loss & 0.386 & -- & -- & -- \\
 \quad LSTM encoder, physics loss in physical units & \pend{} & \pend{} & \pend{} & \pend{} \\
 \quad + magnetopause features & 0.293 & 0.631 & 0.675 & -- \\
 \multicolumn{5}{l}{\textit{GOES-18} (persistence -0.336)} \\
-LSTM, residual & \pend{} & \pend{} & \pend{} & \pend{} \\
+LSTM, residual & 0.661 & 0.754 & 0.772 & -- \\
 MLP & 0.505 & -- & -- & -- \\
 CNN & 0.216 & -- & -- & -- \\
 Transformer (default size) & 0.532 & 0.783 & 0.798 & -- \\
@@ -44,13 +44,13 @@ STORM-PhysNet & 0.575 & 0.718 & 0.773 & 0.754 \\
 \quad cathode--anode + spectral head & 0.590 & 0.726 & 0.778 & -- \\
 \quad radiotrophic gate & 0.599 & 0.726 & 0.769 & -- \\
 \quad LSTM encoder & 0.640 & 0.748 & 0.759 & -- \\
-\quad LSTM encoder, no gate & \pend{} & \pend{} & \pend{} & \pend{} \\
+\quad LSTM encoder, no gate & 0.652 & -- & -- & -- \\
 \quad LSTM encoder, no delay & 0.636 & -- & -- & -- \\
 \quad LSTM encoder, no physics loss & 0.648 & -- & -- & -- \\
 \quad LSTM encoder, physics loss in physical units & \pend{} & \pend{} & \pend{} & \pend{} \\
 \quad + magnetopause features & 0.584 & 0.722 & 0.774 & -- \\
 \multicolumn{5}{l}{\textit{GSAT-19 GRASP} (persistence 0.129)} \\
-LSTM, residual & \pend{} & \pend{} & \pend{} & \pend{} \\
+LSTM, residual & 0.673 & 0.751 & 0.785 & -- \\
 MLP & 0.656 & -- & -- & -- \\
 CNN & 0.297 & -- & -- & -- \\
 Transformer (default size) & 0.646 & 0.762 & 0.803 & -- \\
@@ -64,7 +64,7 @@ STORM-PhysNet & 0.634 & 0.741 & 0.791 & 0.795 \\
 \quad cathode--anode + spectral head & 0.656 & 0.740 & 0.798 & -- \\
 \quad radiotrophic gate & 0.617 & 0.747 & 0.797 & -- \\
 \quad LSTM encoder & 0.687 & 0.751 & 0.784 & -- \\
-\quad LSTM encoder, no gate & \pend{} & \pend{} & \pend{} & \pend{} \\
+\quad LSTM encoder, no gate & 0.707 & -- & -- & -- \\
 \quad LSTM encoder, no delay & 0.689 & -- & -- & -- \\
 \quad LSTM encoder, no physics loss & 0.696 & -- & -- & -- \\
 \quad LSTM encoder, physics loss in physical units & \pend{} & \pend{} & \pend{} & \pend{} \\
