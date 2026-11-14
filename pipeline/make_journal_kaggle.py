@@ -202,7 +202,7 @@ def lookback_of(fams):
 def main(commit, campaign=1):
     out = Path(__file__).resolve().parent / "kaggle"; out.mkdir(exist_ok=True)
     groups = {1: CAMPAIGN1, 2: CAMPAIGN2, 3: CAMPAIGN3, 4: CAMPAIGN4, 5: CAMPAIGN5, 6: CAMPAIGN6, 7: CAMPAIGN7, 8: CAMPAIGN8}[campaign]
-    hours = {1: {1: 7, 2: 7, 3: 5}, 2: {1: 4, 2: 3}, 3: {1: 4, 2: 3, 3: 7}, 4: {1: 3, 2: 4}, 5: {1: 4}, 6: {1: 10, 2: 10, 3: 10}, 7: {1: 7, 2: 6, 3: 10}, 8: {1: 11}}[campaign]
+    hours = {1: {1: 7, 2: 7, 3: 5}, 2: {1: 4, 2: 3}, 3: {1: 4, 2: 3, 3: 7}, 4: {1: 3, 2: 4}, 5: {1: 4}, 6: {1: 10, 2: 10, 3: 10}, 7: {1: 7, 2: 6, 3: 10}, 8: {1: 7}}[campaign]
     for acc, (fams, tfams) in groups.items():
         stem = f"journal_account{acc}" if campaign == 1 else f"journal{campaign}_account{acc}"
         zipname = f"journal_l2_account{acc}.zip" if campaign == 1 else f"journal_l2_c{campaign}_account{acc}.zip"
