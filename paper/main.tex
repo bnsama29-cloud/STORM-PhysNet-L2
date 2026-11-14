@@ -344,6 +344,15 @@ where \(\Phi\) and \(\varphi\) are the standard normal distribution and density 
 error. For an ensemble of \(M\) members \(\hat y^{(1)},\dots,\hat y^{(M)}\) we use the empirical form
 \(\mathrm{CRPS}=\frac1M\sum_j|\hat y^{(j)}-y|-\frac1{2M^2}\sum_{j,k}|\hat y^{(j)}-\hat y^{(k)}|\).
 
+Four further breakdowns use the same forecasts (Section~\ref{sec:breakdown}): PE per test block, that is, per phase
+of the solar cycle; PE of daily means, averaging the observations and the forecasts over the target hours of each UT
+day with at least 20 targets, for comparison with daily-resolution studies; RMSE by the local time of the target,
+which at 135\(^\circ\)W is UT minus 9\,h, in 3-hour bins; and RMSE on rapid changes, the targets at least 0.5 in
+\(\log_{10}\) (a factor of three) above (rises) or below (falls) the flux at the forecast origin, together with the
+mean fraction \((\hat y_i-y^{\mathrm p}_i)/(y_i-y^{\mathrm p}_i)\) of each change that the forecast reproduces. These
+breakdowns were defined after the main results and are descriptive; only the RMSE on rises is tested, against the
+gradient-boosted trees (paired over seeds, Holm-adjusted over the networks and lead times).
+
 \subsection{Statistics}
 \label{sec:stats}
 Every model is trained with ten random seeds (42--51) in every block, so that differences between models can be
@@ -868,6 +877,41 @@ plotted at the time they are valid for (ten-seed means). Gaps are hours without 
 \label{fig:case2015}
 \end{figure*}
 
+\subsection{Solar cycle, daily means, local time and rapid changes}
+\label{sec:breakdown}
+\input{tables/tab_extra.tex}
+Table~\ref{tab:extra} breaks the skill down further. Across the phases of solar cycle 24 the ranking of the
+models changes little, but at 24\,h every network scores 0.03--0.04 lower in block B (2015--2016, the declining
+phase) than in block C (2012--2013), whereas the ridge regression and the trees score the same in both. Persistence
+itself is much better at 12\,h near the maximum (0.40, against 0.16--0.20). \citet{azragorskaya2026} likewise found
+daily forecasts to degrade in the early declining phase, when high-speed solar-wind streams were under-represented
+in their training data.
+
+Averaged over each UT day, the 24\,h forecasts reach PE 0.79--0.83 (trees 0.834, residual Transformer 0.827,
+ridge regression 0.826; persistence 0.683). This is close to the PE of about 0.8 that \citet{wangj2023} report for
+daily fluxes on 2019--2020, though their inputs, lead time and test period differ from ours.
+
+The error of persistence depends strongly on the local time of the target: at 12\,h its RMSE ranges from 0.50 to
+0.87 across the 3-hour bins, because the flux at the origin was measured on the other side of the orbit. The models
+remove most of this dependence (trees 0.34--0.38, residual LSTM 0.35--0.42, residual Transformer with protocol B
+0.34--0.38), and almost every model errs most for targets between 18 and 24\,LT.
+
+The rapid changes separate the networks from the classical models. On rises, which include the onsets of the
+enhancements that charge spacecraft, the networks reproduce 76--83\% of the rise at 6\,h (STORM-PhysNet 68\%) and
+64--74\% at 24\,h, against 67\% and 51\% for the trees, and all networks except STORM-PhysNet have a lower RMSE on
+rises than the trees at 6\,h (for the residual LSTM 0.34 against 0.39, and at 24\,h 0.53 against 0.59; Holm-adjusted
+\(p<10^{-4}\)). On falls the order reverses: the trees have the lowest RMSE at 6\,h (0.41, against 0.43--0.52 for
+the networks) and the ridge regression at 24\,h (0.73, against 0.77--0.83). The lower overall error of the
+classical models thus comes from decays and quiet periods, while the networks follow enhancements more closely;
+the trees still have the best alert HSS (Section~\ref{sec:storm}), which rewards getting the level right on both
+sides of the threshold.
+
+All models see 72\,h of history. Retrained with 24\,h or 168\,h windows (the same summary features, computed over
+the shorter or longer window) and compared on the forecast origins that both window sets share, the trees change by
+at most 0.005 and the ridge regression by at most 0.007 at any lead time: the longer window helps the ridge
+regression slightly at 6--12\,h (by up to 0.004) and the shorter one costs it 0.004--0.007 there, so 72\,h is not a limiting
+choice for these models.
+
 \subsection{Robustness to degraded inputs}
 \label{sec:robust}
 Noise separates the models more than clean data do (Table~\ref{tab:probes}, Fig.~\ref{fig:noise}). The noise
@@ -1019,7 +1063,9 @@ are the strongest option; they need no GPU, and they are the reference any new n
 data may be missing for a day or longer, or when a calibrated uncertainty is needed, the residual LSTM or the LSTM
 variant of STORM-PhysNet is the better choice: they keep the most skill without drivers, their predicted
 uncertainty is close to calibrated, and they train reproducibly (seed standard deviation 0.001--0.005); the residual
-LSTM matches the full LSTM variant within 0.007 at every lead time with fewer components. Averaging ten network seeds
+LSTM matches the full LSTM variant within 0.007 at every lead time with fewer components. The networks also follow
+rapid rises of the flux more closely than the trees (Section~\ref{sec:breakdown}), which matters when the onset of
+an enhancement, rather than the average error, drives the decision. Averaging ten network seeds
 reaches the accuracy of the trees at 6--24\,h, at ten times the training cost. Where no driver data exist, as for
 GRASP, the residual Transformer transferred best, with either protocol. If a new satellite has a year or more of data, fine-tuning any of
 the strong networks gives similar skill, and the choice of architecture matters little. Fig.~\ref{fig:scorecard}
@@ -1134,8 +1180,9 @@ most robust networks to noisy inputs and the most robust of all models to missin
 Gradient-boosted trees on summaries of the same window are the most accurate model on clean inputs at 1 and 12\,h,
 matched at 6--12\,h only by a residual Transformer trained with the longer schedule; they have the lowest storm-time
 error, are the most robust to input noise and, together with a ridge regression, transfer best to GOES-16 and
-GOES-18. The case for neural networks here rests on robustness to missing solar-wind data and on uncertainty
-estimates, not on accuracy. Models that forecast the flux level directly fail on a satellite whose flux differs by a
+GOES-18. The networks do follow rapid rises of the flux more closely than the trees, which lag on enhancements and lead
+on decays. The case for neural networks here rests on these rises, on robustness to missing solar-wind data and on
+uncertainty estimates, not on average accuracy. Models that forecast the flux level directly fail on a satellite whose flux differs by a
 factor of two, while models that forecast changes keep part of their skill, and fine-tuning on local data
 brings all strong models to similar skill on GOES-16, GOES-18 and GSAT-19.
 

@@ -1,0 +1,32 @@
+\begin{table*}[!t]
+\centering
+\caption{Skill by phase of solar cycle 24, on daily means, and on rapid changes. Prediction efficiency
+\(\mathrm{PE}_{\mathrm{clim}}\) per test block (C 2012--2013, near maximum; B 2015--2016, declining phase; A
+2018--2020, minimum) at 12 and 24\,h; \(\mathrm{PE}_{\mathrm{clim}}\) of daily means of the 24\,h forecasts; and RMSE
+(log\(_{10}\) flux) on targets that lie at least 0.5 above (rises) or below (falls) the flux at the forecast origin,
+pooled over blocks and seeds. Means over ten seeds.}
+\label{tab:extra}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{lccccccccccc}
+\toprule
+ & \multicolumn{3}{c}{PE, 12\,h} & \multicolumn{3}{c}{PE, 24\,h} & Daily & \multicolumn{2}{c}{RMSE, rises} & \multicolumn{2}{c}{RMSE, falls} \\
+Model & C & B & A & C & B & A & 24\,h & 6\,h & 24\,h & 6\,h & 24\,h \\
+\midrule
+Persistence & 0.396 & 0.196 & 0.156 & 0.543 & 0.527 & 0.567 & 0.683 & 0.80 & 1.04 & 0.89 & 1.04 \\
+Ridge regression, residual & 0.794 & 0.791 & 0.796 & 0.732 & 0.737 & 0.767 & 0.826 & 0.40 & 0.57 & 0.47 & 0.73 \\
+Gradient-boosted trees, residual & 0.825 & 0.800 & 0.815 & 0.733 & 0.734 & 0.762 & 0.834 & 0.39 & 0.59 & 0.41 & 0.78 \\
+LSTM, residual & 0.802 & 0.785 & 0.780 & 0.736 & 0.706 & 0.754 & 0.816 & 0.34 & 0.53 & 0.49 & 0.83 \\
+STORM-PhysNet, LSTM encoder & 0.807 & 0.784 & 0.780 & 0.726 & 0.700 & 0.750 & 0.812 & 0.35 & 0.55 & 0.48 & 0.82 \\
+Residual Transformer & 0.812 & 0.775 & 0.808 & 0.744 & 0.719 & 0.760 & 0.827 & 0.36 & 0.52 & 0.49 & 0.80 \\
+Residual Transformer, protocol B & 0.817 & 0.806 & 0.812 & 0.729 & 0.696 & 0.752 & 0.805 & 0.35 & 0.56 & 0.43 & 0.77 \\
+STORM-PhysNet & 0.735 & 0.743 & 0.768 & 0.736 & 0.698 & 0.760 & 0.820 & 0.40 & 0.54 & 0.52 & 0.81 \\
+STORM-PhysNet, protocol B & 0.795 & 0.785 & 0.805 & 0.712 & 0.670 & 0.750 & 0.789 & 0.37 & 0.58 & 0.43 & 0.77 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+
+\smallskip
+{\footnotesize Rises: 5305 targets at 6\,h and 4089 at 24\,h; falls: 5016 and 4469.}
+\end{table*}

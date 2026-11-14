@@ -68,3 +68,9 @@ def test_lookback_compares_on_common_origins(tmp_path):
     out = ea.lookback(meta72, P72, [str(d)])
     assert out["lstm_res_L24"]["A"]["n"] == 80 and np.allclose(out["lstm_res_L24"]["A"]["pe"], 1.0)
     assert out["lstm_res@L24"]["A"]["lookback"] == 72 and all(v < 1 for v in out["lstm_res@L24"]["A"]["pe"])
+
+
+def test_t_ns_accepts_datetime64_and_int64():
+    t = np.array(["2018-09-01T00:00", "2018-09-01T01:00"], dtype="datetime64[ns]")
+    assert (ea.t_ns({"t_origin": t}) == t.astype(np.int64)).all()
+    assert (ea.t_ns({"t_origin": t.astype(np.int64)}) == t.astype(np.int64)).all()

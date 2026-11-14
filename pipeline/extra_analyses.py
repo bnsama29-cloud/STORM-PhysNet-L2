@@ -25,6 +25,12 @@ LT_OFFSET_H = -9          # GOES-15 at 135 W
 RISE = 0.5                # log10 units
 
 
+def t_ns(m):
+    """Forecast origins as int64 nanoseconds (train_block.py stores int64, classical_baselines.py datetime64)."""
+    t = np.asarray(m["t_origin"])
+    return t.astype("datetime64[ns]").astype(np.int64) if np.issubdtype(t.dtype, np.datetime64) else t.astype(np.int64)
+
+
 def seeds_of(P, b, fam):
     return sorted(P[b][fam]) if fam in P[b] else []
 
@@ -59,7 +65,7 @@ def daily(meta, P, fams, min_hours=20):
                 continue
             m = meta[b]; H = [int(h) for h in m["horizons"]]; pr = preds(meta, P, b, f); vals = []
             for i, h in enumerate(H):
-                day = (m["t_origin"] + h * 3600 * 10**9) // (86400 * 10**9)
+                day = (t_ns(m) + h * 3600 * 10**9) // (86400 * 10**9)
                 u, inv, cnt = np.unique(day, return_inverse=True, return_counts=True); keep = cnt >= min_hours
                 yo = np.bincount(inv, m["y"][:, i]) / cnt
                 vals.append([pe_clim(yo[keep][:, None], (np.bincount(inv, p[:, i]) / cnt)[keep][:, None])[0] for p in pr])
@@ -78,7 +84,7 @@ def local_time(meta, P, fams, nbins=8):
                 continue
             m = meta[b]; H = [int(h) for h in m["horizons"]]; pr = preds(meta, P, b, f)
             for i, h in enumerate(H):
-                lt = ((m["t_origin"] // (3600 * 10**9) + h + LT_OFFSET_H) % 24).astype(int); k = lt * nbins // 24
+                lt = ((t_ns(m) // (3600 * 10**9) + h + LT_OFFSET_H) % 24).astype(int); k = lt * nbins // 24
                 for p in pr:
                     e2 = (p[:, i] - m["y"][:, i]) ** 2
                     se[h][:, 0] += np.bincount(k, e2, nbins); se[h][:, 1] += np.bincount(k, minlength=nbins)
@@ -128,7 +134,7 @@ def _lookback_group(meta72, P72, dirs, out):
     for b in sorted(meta_l):
         if b not in meta72:
             continue
-        common, i72, il = np.intersect1d(meta72[b]["t_origin"], meta_l[b]["t_origin"], return_indices=True)
+        common, i72, il = np.intersect1d(t_ns(meta72[b]), t_ns(meta_l[b]), return_indices=True)
         y = meta72[b]["y"][i72]
         assert np.allclose(y, meta_l[b]["y"][il]), "targets differ on common origins"
         for fam in P_l[b]:
