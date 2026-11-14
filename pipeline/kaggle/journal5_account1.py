@@ -16,8 +16,8 @@ sh("pip -q install cdflib tensorboard tqdm tabulate 2>&1 | tail -1")
 REPO = "/kaggle/working/STORM-PhysNet-L2"
 if not os.path.exists(REPO):
     sh("cd /kaggle/working && git clone -q https://github.com/bnsama29-cloud/STORM-PhysNet-L2 STORM-PhysNet-L2")
-sh(f"cd {REPO} && git fetch -q origin && git checkout -q 2493990b00ad61df3decedd27d8b1bb86ff030ed")
-assert sh(f"cd {REPO} && git rev-parse HEAD").stdout.strip() == "2493990b00ad61df3decedd27d8b1bb86ff030ed", "wrong code version"
+sh(f"cd {REPO} && git fetch -q origin && git checkout -q cd91582054dc35106e89687b640bf075b6cfd7e0")
+assert sh(f"cd {REPO} && git rev-parse HEAD").stdout.strip() == "cd91582054dc35106e89687b640bf075b6cfd7e0", "wrong code version"
 PIPE = REPO + "/pipeline"
 import torch
 NGPU = torch.cuda.device_count(); print("GPUs:", NGPU, [torch.cuda.get_device_name(i) for i in range(NGPU)])
