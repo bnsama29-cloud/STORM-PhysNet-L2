@@ -39,7 +39,30 @@ orbit: skill, robustness and transfer across four satellites}
 \credit{Conceptualization, Methodology, Software, Validation, Formal analysis, Investigation, Data curation,
 Writing -- original draft, Writing -- review \& editing, Visualization}
 
+\author[1]{Samrudh S Malali}
+\ead{samrudhsmalali.ec25@rvce.edu.in}
+\credit{Investigation, Validation, Writing -- review \& editing}
+
+\author[1]{Dhyan M}
+\ead{dhyanm.ec25@rvce.edu.in}
+\credit{Investigation, Validation, Writing -- review \& editing}
+
+\author[2]{Sanjana H V}
+\ead{sanjanahv.ci25@rvce.edu.in}
+\credit{Investigation, Validation, Writing -- review \& editing}
+
+\author[1]{Pratibha Kantanavar}
+\ead{pratibhakantanavar@rvce.edu.in}
+\credit{Supervision, Writing -- review \& editing}
+
 \affiliation[1]{organization={Department of Electronics and Communication Engineering, RV College of Engineering},
+            addressline={Mysore Road},
+            city={Bengaluru},
+            postcode={560059},
+            state={Karnataka},
+            country={India}}
+
+\affiliation[2]{organization={Department of Artificial Intelligence and Machine Learning Engineering, RV College of Engineering},
             addressline={Mysore Road},
             city={Bengaluru},
             postcode={560059},
@@ -107,8 +130,8 @@ models are almost always trained and tested on a single satellite \citep{zhao202
 behave on another instrument or at another longitude.
 
 This paper evaluates a physics-guided forecast network, STORM-PhysNet, under a strict protocol and against a
-wide set of controls. A shorter version was accepted at a conference (AGERS 2026) and withdrawn before
-publication. The present study adds a 24\,h lead time; twenty further neural model families and two classical
+wide set of controls. A shorter version appears in the proceedings of AGERS 2026 \citep{bn2026agers}. The
+present study adds a 24\,h lead time; twenty further neural model families and two classical
 baselines, so that every
 physics-inspired component is compared with a model that lacks only that component; probabilistic,
 storm-time and alert-level scores; robustness tests that mimic operational data failures; and transfer to
@@ -364,7 +387,7 @@ fold's validation data.
 gate); blue: the encoder, a Transformer in the original model and an LSTM in the best variant; green: one output
 head per lead time, each predicting a change from persistence and its uncertainty, which is added to the last
 observed value \(y_t\) (dashed path). The diagram was drawn in TikZ with code written with the assistance of
-Claude Opus 5.5 (Anthropic) and checked by the author against the model code.}
+Claude Opus 5.5 (Anthropic) and checked by the authors against the model code.}
 \label{fig:arch}
 \end{figure*}
 
@@ -614,10 +637,10 @@ campaigns had been analysed, so the comparison with them is post hoc.
 
 \subsection{Software and use of AI tools in the research}
 All models, training, evaluation, statistics and figures are implemented in Python with PyTorch, NumPy, SciPy and
-Matplotlib; Fig.~\ref{fig:arch} is drawn with TikZ. The author wrote and edited this code with the assistance of the
+Matplotlib; Fig.~\ref{fig:arch} is drawn with TikZ. The authors wrote and edited this code with the assistance of the
 generative AI tool Claude (Anthropic; models Claude Opus 5.5 and Claude Sonnet 5.5), which was used to write and
 revise the data pipeline, model, training, statistics and plotting code and to cross-check reported numbers against
-the result files. All design choices were made by the author. The code is covered by automated tests (77 tests,
+the result files. All design choices were made by the authors. The code is covered by automated tests (84 tests,
 including tests that each model variant changes only its intended component, that the fixed delay average uses no
 future values, and that the physics terms switch on under strong southward driving when evaluated in physical
 units), every figure and
@@ -1041,13 +1064,13 @@ brings all strong models to similar skill on GOES-16, GOES-18 and GSAT-19.
 \section*{Data and code availability}
 The code, configurations, data pipeline, input data files, the log of every training run and every number in the
 tables are available at \url{https://github.com/bnsama29-cloud/STORM-PhysNet-L2}. The saved predictions of all runs
-(1.4\,GB) are available from the author on request and will be deposited in a public archive with a DOI on
+(1.4\,GB) are available from the corresponding author on request and will be deposited in a public archive with a DOI on
 acceptance. GOES-15 data are from NOAA, accessed through NASA
 CDAWeb \citep{goes15_epead}; GOES-16 and GOES-18 data from NOAA NCEI \citep{ncei_goesr}; OMNI data from NASA
 SPDF \citep{omni2020}; and GSAT-19 GRASP data from the Indian Space Science Data Centre \citep{grasp_issdc}.
 
 \section*{Declaration of competing interest}
-The author declares no known competing financial interests or personal relationships that could have appeared
+The authors declare no known competing financial interests or personal relationships that could have appeared
 to influence the work reported in this paper.
 
 \section*{Funding}
@@ -1057,15 +1080,15 @@ not-for-profit sectors.
 \printcredits
 
 \section*{Declaration of generative AI and AI-assisted technologies in the manuscript preparation process}
-During the preparation of this work the author used Claude (Anthropic; Claude Opus 5.5 and Claude Sonnet 5.5) in
+During the preparation of this work the authors used Claude (Anthropic; Claude Opus 5.5 and Claude Sonnet 5.5) in
 order to draft and revise the text of all sections, to check that the reported numbers match the result files,
 and to verify the bibliographic details of the references against Crossref; its use for code and for the
-architecture diagram is described in the Methods section and in the caption of Fig.~\ref{fig:arch}. After using this tool, the author reviewed and edited the content as needed and takes full
+architecture diagram is described in the Methods section and in the caption of Fig.~\ref{fig:arch}. After using this tool, the authors reviewed and edited the content as needed and take full
 responsibility for the content of the published article.
 
 \section*{Acknowledgements}
-The author thanks the GOES, OMNI and GRASP data providers, and the reviewers of the AGERS 2026 conference
-version, whose comments shaped the statistics and controls of this study.
+The authors thank the GOES, OMNI and GRASP data providers, and the reviewers of the AGERS 2026 conference
+version \citep{bn2026agers}, whose comments shaped the statistics and controls of this study.
 
 \bibliographystyle{cas-model2-names}
 \bibliography{refs}
