@@ -85,7 +85,7 @@ def main():
     (out / "tab_main.tex").write_text(tabular(cols, f"Model & {hh}", rows(N, main_v, H),
         "GOES-15 test skill, $\\mathrm{PE}_\\mathrm{clim}$: mean over ten seeds and the three test blocks.", "tab:main",
         "Seed standard deviations are at most 0.011 for the other controls without residual, 0.018 for the residual Transformers, "
-        "0.027 for the STORM-PhysNet variants with a Transformer encoder, 0.007 for the models with an LSTM encoder "
+        "0.027 for the STORM-PhysNet variants with a Transformer encoder, 0.008 for the models with an LSTM encoder "
         "and the persistence residual, and 0.053 for the CNN. "
         "\\pend{} marks runs still in progress.", star=True))
 

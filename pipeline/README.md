@@ -42,7 +42,7 @@ early-stopping patience 12, learning rate 3e-4, storm oversampling ×12.
 | `lstm_res`, `lstm_res_w64`, `lstm_res_w256` | Residual LSTM (persistence residual, no gate/delay/physics) at widths 128, 64 and 256 |
 | `storm_lstm_no_gate`, `storm_lstm_no_delay`, `storm_lstm_no_physics` | One-component ablations of the LSTM variant |
 | `storm_physfix`, `storm_lstm_physfix` | Physics terms evaluated in physical units (both encoders) |
-| `storm_physfix_e1`, `storm_lstm_physfix_e1` | As above with the physics terms at full weight from epoch 1 (optional campaign 5) |
+| `storm_physfix_e1`, `storm_lstm_physfix_e1` | As above with the physics terms at full weight from epoch 1 (campaign 5) |
 | `ridge_res`, `gbm_res` | Classical baselines (`classical_baselines.py`) |
 
 The early hybrid SSM/iTransformer backbone was removed; `backbone` accepts `transformer` or `lstm`.
@@ -54,7 +54,7 @@ The nine conference families were run with horizons 1/6/12/24 h by the scripts o
 
 1. `python make_journal_kaggle.py <commit> [--campaign N]` writes `kaggle/journal[N]_account*.py` (all already
    generated here). Campaign 1: new families; 2: LSTM attribution; 3: physical-unit loss; 4: residual-LSTM widths
-   and gradient-boosted trees; 5 (optional): physics terms at full weight from the first epoch.
+   and gradient-boosted trees; 5: physics terms at full weight from the first epoch.
 2. Paste one script per Kaggle account into a new notebook. Settings: GPU T4 x2, Internet ON. Save & Run All.
 3. Each session trains for at most 10 hours. If the log ends with `NOT FINISHED`, add the notebook's own output as an
    Input and run it again; finished runs are skipped.
