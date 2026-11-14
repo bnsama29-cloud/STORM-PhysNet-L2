@@ -54,8 +54,8 @@ pip install -r requirements.txt
 python -m pytest -q tests
 ```
 
-Full training runs on Kaggle with the scripts in `pipeline/kaggle/` (campaigns 1–6; campaign 5 trains the
-physics terms at full weight from the first epoch, campaign 6 uses training protocol B); see `pipeline/README.md`.
+Full training runs on Kaggle with the scripts in `pipeline/kaggle/` (campaigns 1–7; campaign 5 trains the
+physics terms at full weight from the first epoch, campaign 6 uses training protocol B, campaign 7 other input windows); see `pipeline/README.md`.
 Tables and figures: `pipeline/journal_analysis.py`, `journal_tables.py`, `journal_figures.py`.
 
 ## License and data
