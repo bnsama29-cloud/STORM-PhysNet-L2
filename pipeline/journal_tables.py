@@ -13,15 +13,18 @@ ORDER = [  # (family, label, group)
     ("persistence", "Persistence", "Reference"),
     ("ridge_res", "Ridge regression, residual", "Classical baselines"), ("gbm_res", "Gradient-boosted trees, residual", "Classical baselines"),
     ("lstm", "LSTM", "Baselines"), ("lstm_res", "LSTM, residual", "Baselines"),
-    ("lstm_res_w64", "\\quad width 64", "Baselines"), ("lstm_res_w256", "\\quad width 256", "Baselines"), ("mlp", "MLP", "Baselines"),
+    ("lstm_res_w64", "\\quad width 64", "Baselines"), ("lstm_res_w256", "\\quad width 256", "Baselines"),
+    ("lstm_res_tp", "\\quad training protocol B", "Baselines"), ("mlp", "MLP", "Baselines"),
     ("cnn", "CNN", "Baselines"),
     ("transformer", "Transformer (default size)", "Transformer controls"),
     ("transformer_matched", "Transformer, matched", "Transformer controls"),
     ("tf_ffn256", "Transformer, FFN 256", "Transformer controls"),
     ("tf_ffn_res", "Residual Transformer", "Transformer controls"),
+    ("tf_ffn_res_tp", "\\quad training protocol B", "Transformer controls"),
     ("tf_res_fixed_ma", "\\quad + fixed average", "Transformer controls"),
     ("tf_flux_only", "Flux-only Transformer", "Transformer controls"),
     ("storm_bz", "STORM-PhysNet", "STORM-PhysNet and variants"),
+    ("storm_bz_tp", "\\quad training protocol B", "STORM-PhysNet and variants"),
     ("storm_fixed_ma", "\\quad fixed average", "STORM-PhysNet and variants"),
     ("storm_no_delay", "\\quad no delay", "STORM-PhysNet and variants"),
     ("storm_no_gate", "\\quad no gate", "STORM-PhysNet and variants"),
@@ -32,6 +35,7 @@ ORDER = [  # (family, label, group)
     ("storm_cathode_spec", "\\quad cathode--anode + spectral head", "STORM-PhysNet and variants"),
     ("storm_radiotrophic", "\\quad radiotrophic gate", "STORM-PhysNet and variants"),
     ("storm_lstm_backbone", "\\quad LSTM encoder", "STORM-PhysNet and variants"),
+    ("storm_lstm_backbone_tp", "\\quad LSTM encoder, training protocol B", "STORM-PhysNet and variants"),
     ("storm_lstm_no_gate", "\\quad LSTM encoder, no gate", "STORM-PhysNet and variants"),
     ("storm_lstm_no_delay", "\\quad LSTM encoder, no delay", "STORM-PhysNet and variants"),
     ("storm_lstm_no_physics", "\\quad LSTM encoder, no physics loss", "STORM-PhysNet and variants"),
@@ -85,7 +89,7 @@ def main():
     (out / "tab_main.tex").write_text(tabular(cols, f"Model & {hh}", rows(N, main_v, H),
         "GOES-15 test skill, $\\mathrm{PE}_\\mathrm{clim}$: mean over ten seeds and the three test blocks.", "tab:main",
         "Seed standard deviations are at most 0.011 for the other controls without residual, 0.018 for the residual Transformers, "
-        "0.027 for the STORM-PhysNet variants with a Transformer encoder, 0.007 for the models with an LSTM encoder "
+        "0.027 for the STORM-PhysNet variants with a Transformer encoder, 0.008 for the models with an LSTM encoder "
         "and the persistence residual, and 0.053 for the CNN. "
         "\\pend{} marks runs still in progress.", star=True))
 

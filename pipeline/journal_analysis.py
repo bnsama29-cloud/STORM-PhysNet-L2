@@ -140,6 +140,9 @@ def analyse(meta, P, transfer_dirs):
     # width sensitivity of the residual LSTM (default width 128 minus width 64 and 256)
     N["paired_width"] = paired(S, "lstm_res", ["lstm_res_w64", "lstm_res_w256"], H)
     # physics terms at full weight from epoch 1 (campaign 5) against the ramped and the physics-free versions
+    # training-protocol check (campaign 6): protocol B minus the original protocol, per model (positive: B better)
+    N["paired_tp"] = sum((paired(S, f + "_tp", [f], H) for f in ("lstm_res", "storm_lstm_backbone", "tf_ffn_res",
+                                                                "storm_bz") if f + "_tp" in S), [])
     N["paired_e1"] = (paired(S, "storm_lstm_physfix_e1", ["storm_lstm_physfix", "storm_lstm_no_physics"], H)
                       + paired(S, "storm_physfix_e1", ["storm_physfix", "storm_no_physics"], H))
     # 3. storm-time RMSE (Dst <= -50 nT at the target hour)

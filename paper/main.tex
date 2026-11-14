@@ -52,18 +52,18 @@ Writing -- original draft, Writing -- review \& editing, Visualization}
 Electrons above 2\,MeV at geostationary orbit charge spacecraft dielectrics, and forecasts are also needed at
 longitudes that no GOES satellite monitors. We compare STORM-PhysNet, a network with a learned
 solar-wind delay, a gate driven by southward interplanetary magnetic field, outputs relative to persistence and
-a physics-informed loss, with 26 neural and two classical models. All forecast 1, 6, 12 and 24\,h ahead from hourly
+a physics-informed loss, with 28 neural and two classical models. All forecast 1, 6, 12 and 24\,h ahead from hourly
 GOES-15 data (2011--2020), with ten seeds on three disjoint test periods, leakage-free splits and
 paired \(t\)-tests. Predicting the change from persistence gives the 1\,h skill, and
 solar-wind inputs give the 6--24\,h skill. The delay, the gate, two alternative gates, a spectral head,
-magnetopause features and the physics loss change no score significantly,
-though early stopping mostly kept weights from before the physics terms switched on. With a
+magnetopause features and the physics loss change no score significantly, even with physics terms in
+physical units at full weight from the first epoch. With a
 long short-term memory (LSTM) encoder, STORM-PhysNet reaches prediction efficiencies of 0.975, 0.852, 0.790 and
 0.725, and a plain LSTM predicting the change from persistence matches it within 0.007. Gradient-boosted trees on
 window summaries are more accurate still (0.978, 0.864, 0.813 and 0.743), have the lowest storm-time
 error and are the most robust to input noise, while the LSTM models keep more skill when solar-wind data are missing
 and give calibrated uncertainty. Models that forecast the flux level lose their skill on GOES-16, whose flux
-reads half that of GOES-15, whereas models that forecast the change keep part of it. Fine-tuning on local
+reads half that of GOES-15, whereas change-forecasting models keep part of it. Fine-tuning on local
 data brings all networks to similar skill on GOES-16, GOES-18 and India's GSAT-19.
 \end{abstract}
 
@@ -108,7 +108,7 @@ behave on another instrument or at another longitude.
 
 This paper evaluates a physics-guided forecast network, STORM-PhysNet, under a strict protocol and against a
 wide set of controls. A shorter version was accepted at a conference (AGERS 2026) and withdrawn before
-publication. The present study adds a 24\,h lead time; eighteen further neural model families and two classical
+publication. The present study adds a 24\,h lead time; twenty further neural model families and two classical
 baselines, so that every
 physics-inspired component is compared with a model that lacks only that component; probabilistic,
 storm-time and alert-level scores; robustness tests that mimic operational data failures; and transfer to
@@ -325,7 +325,7 @@ Holm method: the \(m\) values are sorted, \(p_{(1)}\le\dots\le p_{(m)}\), the \(
 \(\max_{j\le k}\min\{1,(m-j+1)p_{(j)}\}\), and a difference is called significant if the adjusted value is below
 0.05. This controls the chance of any false positive across the table. The scores, the test and the 0.05 level were
 fixed in the conference study; the attribution of the LSTM variant (Section~\ref{sec:attribution}), the width check
-of the residual LSTM, the physical-unit physics loss and the classical baselines were added after the
+of the residual LSTM, the physical-unit physics loss (with both schedules) and the classical baselines were added after the
 first journal results and are reported as such.
 
 \subsection{Robustness tests}
@@ -567,8 +567,9 @@ ratio \(6.6/r_0\) are projected to 128 features and added to \(\mathbf z\) befor
 A second campaign removes the gate, the delay or the physics loss from the LSTM variant, and trains an LSTM that has
 only the persistence residual (\emph{residual LSTM}: Eq.~(\ref{eq:embed}) without the delay, Eq.~(\ref{eq:lstm}) and a
 linear head added to \(y_t\)). The residual LSTM is also trained with half and twice the width (64 and 256 units
-instead of 128) to check that its result does not depend on model size. The final campaign trains both
-encoders with the physical-unit loss.
+instead of 128) to check that its result does not depend on model size. Two further campaigns train both
+encoders with the physical-unit loss: first with the schedule of Eq.~(\ref{eq:loss}), then with the physics terms
+at full weight from the first epoch (\emph{epoch 1} in the tables).
 
 \subsection{Controls}
 \label{sec:controls}
@@ -592,8 +593,8 @@ keeping the flux history, its spread and the mask.
 \item \emph{CNN}: two convolutions (64 and 128 channels, kernel 3) followed by global average pooling over the 72
 hours and a linear head.
 \end{itemize}
-The LSTM, MLP, CNN and the non-residual Transformers predict the flux level directly. The 27 neural families
-reported here make 810 training runs, which took about 59 GPU-hours of training on NVIDIA T4 GPUs.
+The LSTM, MLP, CNN and the non-residual Transformers predict the flux level directly. The 29 neural families
+reported here make 870 training runs, which took about 64 GPU-hours of training on NVIDIA T4 GPUs.
 
 \subsection{Classical baselines}
 \label{sec:classical}
@@ -713,15 +714,16 @@ fixed-average variant reproduces without loss of skill.
 
 \emph{The encoder matters, the STORM-PhysNet components do not.} Replacing the Transformer with an LSTM raises the
 1\,h score to 0.975, the highest of all networks (\(+0.003\) over the residual Transformer, paired \(p<0.001\)), and the 6 and 12\,h scores by 0.04
-(Holm-adjusted \(p=0.046\) and 0.023 against STORM-PhysNet), while it loses 0.006 at 24\,h (not significant). It
+(Holm-adjusted \(p=0.066\) and 0.034 against STORM-PhysNet, so only the 12\,h gain survives the correction),
+while it loses 0.006 at 24\,h (not significant). It
 also makes training far more reproducible: the standard deviation over seeds at 6 and 12\,h falls from
 0.014--0.027 for the variants with a Transformer encoder to 0.004--0.005. Whether this gain comes from the LSTM
 alone or from its combination with the residual, gate and loss is tested by removing one component at a time from
 the LSTM variant (Table~\ref{tab:paired_lstm}, Fig.~\ref{fig:attribution_lstm}). Removing the gate or the delay
-stage changes no score by more than 0.004, and no change is significant after Holm adjustment over the 16
+stage changes no score by more than 0.004, and no change is significant after Holm adjustment over the 24
 comparisons. Removing the training-loss terms other than the main likelihood (the physics terms in the standardised version,
 and the Dst, Kp, storm, variance and delay terms) lowers the 6 and 12\,h scores by 0.004 and 0.005 (unadjusted
-\(p=0.009\) and 0.006, Holm-adjusted 0.10 and 0.08), a small effect that does not survive the correction. Most
+\(p=0.009\) and 0.006, Holm-adjusted 0.17 and 0.12), a small effect that does not survive the correction. Most
 telling is the residual LSTM, which has the LSTM encoder and the persistence residual but no delay, gate, physics
 loss, uncertainty head or auxiliary task, and 267\,k instead of 359\,k parameters: it scores 0.974, 0.849, 0.789
 and 0.732, within 0.003 of the full LSTM variant at 1--12\,h and 0.007 above it at 24\,h. Only the 1\,h difference
@@ -960,14 +962,22 @@ written, and the scores are the same (differences of at most 0.002, Section~\ref
 
 A second reason lies in the training schedule, and it applies to both versions. Early stopping keeps the weights
 with the lowest 24\,h validation error, and for most networks that error is lowest after only 2--5 epochs (median 3
-over all 810 neural runs), while the physics terms are switched off for the first five epochs and reach full weight
-only at epoch 15 (Eq.~\ref{eq:loss}). Of the 390 runs of STORM-PhysNet variants that contain physics terms,
+over all 870 neural runs), while the physics terms are switched off for the first five epochs and reach full weight
+only at epoch 15 (Eq.~\ref{eq:loss}). Of the 390 runs of STORM-PhysNet variants that contain ramped physics terms,
 only 54 kept weights from an epoch in which those terms were active, and averaged over the 390 runs the physics
 weight of the kept epoch is 6\% of its nominal value (10--11\% for the physical-unit versions). The auxiliary Dst,
 Kp and storm terms are not ramped and act from the first epoch. The physics ablations therefore compare models whose
 selected weights were trained almost without the rate, \(B_z\), \(\epsilon\), variance and delay terms; they show
-that these terms, as scheduled here, do not change the forecasts, not that the constraints cannot help. A schedule
-that applies the constraints from the first epoch would test that directly. Physical knowledge helped in this study
+that these terms, as scheduled there, do not change the forecasts, not that the constraints cannot help.
+
+The final campaign therefore applies the physical-unit terms at full weight from the first epoch, so that every one
+of its 60 runs kept weights trained with them. The scores stay the same: for both encoders these models are within
+0.004 of the ramped physical-unit versions and within 0.007 of the versions without physics terms at every lead time,
+and no difference is significant (all Holm-adjusted \(p=1\)). Their storm-time error, alert skill, robustness to
+noise and missing drivers, and zero-shot transfer change by similarly small amounts (Tables~\ref{tab:main},
+\ref{tab:storm}, \ref{tab:probes} and~\ref{tab:transfer}). With the weights \(\lambda\) used here, the
+constraints therefore do not improve the forecasts even when fully active, plausibly because the data already
+teach the networks what the constraints encode, such as the response to southward \(B_z\). Physical knowledge helped in this study
 through the choice of target (a change from persistence) and of inputs, not through specialised layers.
 
 \subsection{Why does the LSTM encoder help?}
@@ -1002,8 +1012,8 @@ in the transfer experiments. (2) Blocks B and C are blocked cross-validation; bl
 chronological GOES-15 test, and it contains few storms. (3) The models are not compared with NOAA's operational
 forecast, whose past forecasts are not publicly archived. (4) The GRASP record is short (14 months) and is used
 without driver inputs. (5) We use one GOES-16/18 telescope and no cross-calibration between satellites. (6) The
-study is an offline evaluation, not an operational trial. (7) Early stopping kept weights from before the physics ramp in most runs (Section~\ref{sec:whyphys}),
-so the physics terms were tested at a small fraction of their nominal weight. (8) Model selection uses the validation error at 24\,h only, which may slightly
+study is an offline evaluation, not an operational trial. (7) Early stopping kept weights from before the physics ramp in most runs (Section~\ref{sec:whyphys}); only the
+final campaign applies the constraints at full weight throughout, and the weights \(\lambda\) were not tuned. (8) Model selection uses the validation error at 24\,h only, which may slightly
 favour the longest lead time over the shortest. (9) The classical baselines were added after the neural results had
 been analysed and were not fine-tuned on the target satellites; their comparison is post hoc.
 
@@ -1015,8 +1025,8 @@ Under a protocol that prevents information leakage, with ten seeds on three test
 change from persistence explains the 1\,h skill of forecasts of relativistic electrons at geostationary orbit,
 and solar-wind inputs explain the 6--24\,h skill. A learned solar-wind delay, a \(B_z\)-conditioned gate, two
 alternative gates, a spectral head and magnetopause features do not change the accuracy significantly, and
-neither does the physics-informed loss in standardised or physical units, although early stopping kept weights
-trained mostly before its constraints were switched on. The encoder matters more: models with an
+neither does the physics-informed loss, in standardised or physical units and even at full weight from the
+first epoch. The encoder matters more: models with an
 LSTM encoder are the most robust networks to noisy inputs and the most robust of all models to missing solar-wind
 data, and a plain LSTM that predicts the change from persistence matches the full physics-guided model
 within 0.007 at every lead time. Gradient-boosted trees on summaries of the same window are the most accurate
@@ -1031,7 +1041,7 @@ brings all strong models to similar skill on GOES-16, GOES-18 and GSAT-19.
 \section*{Data and code availability}
 The code, configurations, data pipeline, input data files, the log of every training run and every number in the
 tables are available at \url{https://github.com/bnsama29-cloud/STORM-PhysNet-L2}. The saved predictions of all runs
-(1.3\,GB) are available from the author on request and will be deposited in a public archive with a DOI on
+(1.4\,GB) are available from the author on request and will be deposited in a public archive with a DOI on
 acceptance. GOES-15 data are from NOAA, accessed through NASA
 CDAWeb \citep{goes15_epead}; GOES-16 and GOES-18 data from NOAA NCEI \citep{ncei_goesr}; OMNI data from NASA
 SPDF \citep{omni2020}; and GSAT-19 GRASP data from the Indian Space Science Data Centre \citep{grasp_issdc}.

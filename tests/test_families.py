@@ -17,7 +17,8 @@ JOURNAL = ["transformer", "tf_ffn256", "mlp", "cnn", "storm_no_physics", "storm_
            "storm_radiotrophic", "storm_lstm_backbone", "storm_magnetopause",
            "lstm_res", "storm_lstm_no_gate", "storm_lstm_no_delay", "storm_lstm_no_physics",
            "storm_physfix", "storm_lstm_physfix", "lstm_res_w64", "lstm_res_w256",
-           "storm_physfix_e1", "storm_lstm_physfix_e1"]
+           "storm_physfix_e1", "storm_lstm_physfix_e1",
+           "lstm_res_tp", "storm_lstm_backbone_tp", "tf_ffn_res_tp", "storm_bz_tp"]
 
 
 def make(fam, tmp_path, scaler=None):
@@ -182,3 +183,40 @@ def test_e1_families_configure_ramp_and_physical_units():
     assert c["loss"]["input_scaler"] is not None and c["model"]["backbone"] == "lstm"
     c2 = configure(copy.deepcopy(cfg), "storm_lstm_physfix", scaler=(mu, sd))
     assert "physics_ramp_start" not in c2["training"]
+
+
+def test_selection_mse_last_and_mean():
+    import pytest
+    import torch
+    from src.training.trainer import selection_mse
+    pred = torch.tensor([[0.0, 0.0], [0.0, 0.0]]); target = torch.tensor([[1.0, 3.0], [1.0, 3.0]])
+    assert selection_mse(pred, target) == 9.0                  # 24 h (last) only
+    assert selection_mse(pred, target, "mean") == 5.0           # mean of 1 and 9
+    with pytest.raises(ValueError, match="select_on"):
+        selection_mse(pred, target, "first")
+
+
+def test_protocol_families_copy_base_and_override_training():
+    import copy
+    import numpy as np
+    from storm_pipeline.families import configure, SPEC, PROTOCOL
+    for base in ("lstm_res", "storm_lstm_backbone", "tf_ffn_res", "storm_bz"):
+        assert SPEC[base + "_tp"]["model_type"] == SPEC[base]["model_type"]
+    cfg = {"model": {}, "loss": {}, "training": {"warmup_epochs": 5, "learning_rate": 3e-4, "epochs": 40}}
+    mu, sd = np.zeros(16, np.float32), np.ones(16, np.float32)
+    c = configure(copy.deepcopy(cfg), "storm_lstm_backbone_tp", scaler=(mu, sd))
+    assert c["training"]["learning_rate"] == 1e-4 and c["training"]["select_on"] == "mean"
+    assert c["training"]["epochs"] == 60 and c["training"]["warmup_epochs"] == 1 and c["model"]["backbone"] == "lstm"
+    assert configure(copy.deepcopy(cfg), "storm_lstm_backbone", scaler=(mu, sd))["training"]["learning_rate"] == 3e-4
+
+
+def test_protocol_families_build_same_architecture_as_base():
+    import copy
+    from storm_pipeline.families import build, configure
+    from src.training.trainer import Trainer
+    cfg0 = __import__("yaml").safe_load(open("configs/config.yaml"))
+    for base in ("lstm_res", "tf_ffn_res"):
+        m_tp = build(base + "_tp", Trainer(configure(copy.deepcopy(cfg0), base + "_tp")), 16, "cpu")
+        m = build(base, Trainer(configure(copy.deepcopy(cfg0), base)), 16, "cpu")
+        assert type(m_tp) is type(m)
+        assert sum(p.numel() for p in m_tp.parameters()) == sum(p.numel() for p in m.parameters())

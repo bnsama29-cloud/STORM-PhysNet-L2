@@ -55,6 +55,13 @@ SPEC = {
 }
 
 
+
+# Training-protocol check: the same models trained with a lower learning rate (1e-4), a one-epoch warm-up, up to 60
+# epochs, and model selection on the mean validation MSE over all lead times instead of the 24 h one.
+PROTOCOL = dict(learning_rate=1e-4, warmup_epochs=1, epochs=60, select_on="mean")
+for _base in ("lstm_res", "storm_lstm_backbone", "tf_ffn_res", "storm_bz"):
+    SPEC[_base + "_tp"] = dict(SPEC[_base], training={**SPEC[_base].get("training", {}), **PROTOCOL})
+
 def configure(cfg, family, scaler=None):
     """Apply a family's settings to a deep copy of the base config (in place) and return it.
     scaler: (mu, sd) of the block; train_block.py always passes it, so the "physfix" families train their physics
@@ -72,6 +79,8 @@ def configure(cfg, family, scaler=None):
 
 
 def build(family, trainer, n_sw, device, scaler=None):
+    if family.endswith("_tp"):   # protocol-check families build exactly like their base family
+        family = family[:-3]
     """trainer: a src.training.trainer.Trainer made from configure(cfg, family). scaler: (mu, sd) of the block,
     needed by storm_magnetopause for new models (a loaded checkpoint carries its own)."""
     n_h = len(HSTEPS)

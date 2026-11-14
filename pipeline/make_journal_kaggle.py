@@ -5,7 +5,8 @@
   python make_journal_kaggle.py <commit> --campaign 2 ->  kaggle/journal2_account{1,2}.py   (LSTM-encoder attribution)
   python make_journal_kaggle.py <commit> --campaign 3 ->  kaggle/journal3_account{1,2,3}.py (final: campaign 2 + physfix)
   python make_journal_kaggle.py <commit> --campaign 4 ->  kaggle/journal4_account{1,2}.py   (residual-LSTM width, GBM)
-  python make_journal_kaggle.py <commit> --campaign 5 ->  kaggle/journal5_account1.py         (physics from epoch 1, optional)
+  python make_journal_kaggle.py <commit> --campaign 5 ->  kaggle/journal5_account1.py         (physics from epoch 1)
+  python make_journal_kaggle.py <commit> --campaign 6 ->  kaggle/journal6_account{1,2,3}.py   (training-protocol check)
 
 Each account trains a group of model families on all three test blocks (A, B, C; 10 seeds; horizons 1, 6, 12, 24 h)
 with the noise and driver probes, then uses its block-A checkpoints for cross-satellite transfer to GOES-16, GOES-18
@@ -30,6 +31,11 @@ CAMPAIGN3 = {   # final campaign: campaign 2 (if not yet run) + the physics loss
     1: ("lstm_res,storm_lstm_no_gate", "lstm_res"),
     2: ("storm_lstm_no_delay,storm_lstm_no_physics", ""),
     3: ("storm_physfix,storm_lstm_physfix", "storm_physfix,storm_lstm_physfix"),
+}
+CAMPAIGN6 = {   # training-protocol check: lr 1e-4, 1-epoch warm-up, up to 60 epochs, selection on mean val MSE
+    1: ("lstm_res_tp,storm_lstm_backbone_tp", ""),
+    2: ("tf_ffn_res_tp", ""),
+    3: ("storm_bz_tp", ""),
 }
 CAMPAIGN5 = {   # optional: physical-unit physics terms at full weight from the first epoch (no ramp), both encoders
     1: ("storm_physfix_e1,storm_lstm_physfix_e1", ""),
@@ -176,8 +182,8 @@ print("ALL WORK DONE: send", name) if all(n_preds(b) >= 10 for b in "ABC") else 
 
 def main(commit, campaign=1):
     out = Path(__file__).resolve().parent / "kaggle"; out.mkdir(exist_ok=True)
-    groups = {1: CAMPAIGN1, 2: CAMPAIGN2, 3: CAMPAIGN3, 4: CAMPAIGN4, 5: CAMPAIGN5}[campaign]
-    hours = {1: {1: 7, 2: 7, 3: 5}, 2: {1: 4, 2: 3}, 3: {1: 4, 2: 3, 3: 7}, 4: {1: 3, 2: 4}, 5: {1: 4}}[campaign]
+    groups = {1: CAMPAIGN1, 2: CAMPAIGN2, 3: CAMPAIGN3, 4: CAMPAIGN4, 5: CAMPAIGN5, 6: CAMPAIGN6}[campaign]
+    hours = {1: {1: 7, 2: 7, 3: 5}, 2: {1: 4, 2: 3}, 3: {1: 4, 2: 3, 3: 7}, 4: {1: 3, 2: 4}, 5: {1: 4}, 6: {1: 10, 2: 10, 3: 10}}[campaign]
     for acc, (fams, tfams) in groups.items():
         stem = f"journal_account{acc}" if campaign == 1 else f"journal{campaign}_account{acc}"
         zipname = f"journal_l2_account{acc}.zip" if campaign == 1 else f"journal_l2_c{campaign}_account{acc}.zip"
