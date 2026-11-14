@@ -27,6 +27,7 @@ ORDER = [  # (family, label, group)
     ("storm_no_gate", "\\quad no gate", "STORM-PhysNet and variants"),
     ("storm_no_physics", "\\quad no physics loss", "STORM-PhysNet and variants"),
     ("storm_physfix", "\\quad physical-unit loss", "STORM-PhysNet and variants"),
+    ("storm_physfix_e1", "\\quad physical-unit loss from epoch 1", "STORM-PhysNet and variants"),
     ("storm_cathode", "\\quad cathode--anode gate", "STORM-PhysNet and variants"),
     ("storm_cathode_spec", "\\quad cathode--anode + spectral head", "STORM-PhysNet and variants"),
     ("storm_radiotrophic", "\\quad radiotrophic gate", "STORM-PhysNet and variants"),
@@ -35,6 +36,7 @@ ORDER = [  # (family, label, group)
     ("storm_lstm_no_delay", "\\quad LSTM encoder, no delay", "STORM-PhysNet and variants"),
     ("storm_lstm_no_physics", "\\quad LSTM encoder, no physics loss", "STORM-PhysNet and variants"),
     ("storm_lstm_physfix", "\\quad LSTM encoder, physical-unit loss", "STORM-PhysNet and variants"),
+    ("storm_lstm_physfix_e1", "\\quad LSTM encoder, physical-unit loss from epoch 1", "STORM-PhysNet and variants"),
     ("storm_magnetopause", "\\quad + magnetopause features", "STORM-PhysNet and variants"),
 ]
 LABEL = {f: l.replace("\\quad ", "STORM-PhysNet, " if f.startswith("storm_") else "Residual TF ") for f, l, _ in ORDER}
@@ -113,7 +115,7 @@ def main():
     for r in N.get("paired_vs_lstm", []): PL.setdefault(r["family"], {})[r["h"]] = r
     lstm_rows = [("lstm_res", "Residual LSTM"), ("storm_lstm_no_gate", "no gate"),
                  ("storm_lstm_no_delay", "no delay"), ("storm_lstm_no_physics", "no physics loss"),
-                 ("storm_lstm_physfix", "physical-unit loss")]
+                 ("storm_lstm_physfix", "physical-unit loss"), ("storm_lstm_physfix_e1", "physical-unit loss, epoch 1")]
     body = [f"{lab} & " + (" & ".join(cell(PL[f][h]) for h in H) if f in PL else " & ".join(["\\pend{}"] * len(H))) + " \\\\"
             for f, lab in lstm_rows]
     (out / "tab_paired_lstm.tex").write_text(tabular(cols, f"LSTM variant minus & {hh}", body,

@@ -95,7 +95,8 @@ def per_seed(meta, P, fam, blocks, fn, key="pred"):
     return np.array([np.mean([fn(meta[b], P[b][fam][s][key]) for b in blocks], 0) for s in seeds])
 
 
-LSTM_ATTR = ["lstm_res", "storm_lstm_no_gate", "storm_lstm_no_delay", "storm_lstm_no_physics", "storm_lstm_physfix"]
+LSTM_ATTR = ["lstm_res", "storm_lstm_no_gate", "storm_lstm_no_delay", "storm_lstm_no_physics", "storm_lstm_physfix",
+             "storm_lstm_physfix_e1"]
 
 
 def paired(S, ref, fams, H):
@@ -138,6 +139,9 @@ def analyse(meta, P, transfer_dirs):
     N["paired_vs_lstm"] = paired(S, "storm_lstm_backbone", LSTM_ATTR, H)
     # width sensitivity of the residual LSTM (default width 128 minus width 64 and 256)
     N["paired_width"] = paired(S, "lstm_res", ["lstm_res_w64", "lstm_res_w256"], H)
+    # physics terms at full weight from epoch 1 (campaign 5) against the ramped and the physics-free versions
+    N["paired_e1"] = (paired(S, "storm_lstm_physfix_e1", ["storm_lstm_physfix", "storm_lstm_no_physics"], H)
+                      + paired(S, "storm_physfix_e1", ["storm_physfix", "storm_no_physics"], H))
     # 3. storm-time RMSE (Dst <= -50 nT at the target hour)
     def storm_rmse(m, p):
         out = []

@@ -30,7 +30,8 @@ LABEL = {"storm_bz": "STORM-PhysNet", "storm_lstm_backbone": "STORM-PhysNet (LST
          "storm_magnetopause": "+ magnetopause", "storm_physfix": "physical-unit loss",
          "lstm_res": "LSTM, residual", "lstm_res_w64": "LSTM, residual, width 64", "lstm_res_w256": "LSTM, residual, width 256",
          "ridge_res": "Ridge regression", "gbm_res": "Gradient-boosted trees", "storm_lstm_no_gate": "no gate", "storm_lstm_no_delay": "no delay",
-         "storm_lstm_no_physics": "no physics loss", "storm_lstm_physfix": "physical-unit loss"}
+         "storm_lstm_no_physics": "no physics loss", "storm_lstm_physfix": "physical-unit loss",
+         "storm_physfix_e1": "physical-unit loss, epoch 1", "storm_lstm_physfix_e1": "physical-unit loss, epoch 1"}
 COL = {  # Okabe-Ito colour-blind-safe palette (line styles also differ where colours repeat)
     "storm_bz": "#D55E00", "storm_lstm_backbone": "#E69F00", "tf_ffn_res": "#0072B2", "transformer_matched": "#CC79A7",
     "lstm": "#009E73", "mlp": "#56B4E9", "tf_flux_only": "#F0E442", "persistence": "#555555", "tf_res_fixed_ma": "#0072B2",
@@ -79,7 +80,7 @@ def fig_attribution(N, out, P, meta, ref="storm_bz", fams=None, name="fig_attrib
     """Forest plot of PE_clim differences (family minus ref) with 95% CI over seeds; families missing from P are skipped."""
     H = N["horizons"]; blocks = sorted(P)
     if fams is None:
-        fams = ["storm_no_delay", "storm_fixed_ma", "storm_no_gate", "storm_no_physics", "storm_physfix", "storm_cathode",
+        fams = ["storm_no_delay", "storm_fixed_ma", "storm_no_gate", "storm_no_physics", "storm_physfix", "storm_physfix_e1", "storm_cathode",
                 "storm_cathode_spec", "storm_radiotrophic", "storm_magnetopause", "storm_lstm_backbone", "tf_ffn_res"]
     fams = [f for f in fams if all(f in P[b] for b in blocks)]
     if not fams or not all(ref in P[b] for b in blocks):
@@ -355,7 +356,8 @@ def main():
     if all(f in N["main"] for f in SCORE_MODELS): fig_scorecard(N, out)
     if a.importance: fig_gbm_importance(json.load(open(a.importance)), out)
     fig_attribution(N, out, P, meta, ref="storm_lstm_backbone", name="fig_attribution_lstm.png", prefix="LSTM enc., ",
-                    fams=["lstm_res", "storm_lstm_no_gate", "storm_lstm_no_delay", "storm_lstm_no_physics", "storm_lstm_physfix"],
+                    fams=["lstm_res", "storm_lstm_no_gate", "storm_lstm_no_delay", "storm_lstm_no_physics", "storm_lstm_physfix",
+                          "storm_lstm_physfix_e1"],
                     plain=("lstm_res",), xlabel_ref="STORM-PhysNet (LSTM enc.)")
     fig_scatter(P, meta, out); fig_case_goes15(P, meta, out); fig_calibration(P, meta, out); fig_case_goes16(a.transfer, out)
     ov = fig_coverage_and_overlap(Path(a.repo).resolve(), out)
