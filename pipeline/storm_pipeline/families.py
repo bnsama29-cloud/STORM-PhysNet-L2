@@ -43,6 +43,12 @@ SPEC = {
     "storm_physfix": dict(model_type="storm_physnet", ablation="none", match=False, physical_loss=True),
     "storm_lstm_physfix": dict(model_type="storm_physnet", ablation="none", match=False, physical_loss=True,
                                model=dict(backbone="lstm")),
+    # physics terms in physical units and at full weight from the first epoch (no ramp), so that the weights chosen
+    # by early stopping (usually epochs 2-5) were trained with the constraints active
+    "storm_physfix_e1": dict(model_type="storm_physnet", ablation="none", match=False, physical_loss=True,
+                             training=dict(physics_ramp_start=0, physics_ramp_len=1)),
+    "storm_lstm_physfix_e1": dict(model_type="storm_physnet", ablation="none", match=False, physical_loss=True,
+                                  model=dict(backbone="lstm"), training=dict(physics_ramp_start=0, physics_ramp_len=1)),
     "storm_magnetopause": dict(model_type="storm_physnet", ablation="none", match=False,
                                model=dict(use_magnetopause=True, vsw_idx=SW_COLS.index("vsw"),
                                           density_idx=SW_COLS.index("density"), pdyn_idx=SW_COLS.index("pdyn"))),
@@ -56,6 +62,7 @@ def configure(cfg, family, scaler=None):
     s = SPEC[family]
     cfg["model_type"], cfg["ablation"], cfg["match_storm_capacity"] = s["model_type"], s["ablation"], s["match"]
     cfg["model"].update(s.get("model", {}))
+    cfg["training"].update(s.get("training", {}))
     if s.get("physical_loss") and scaler is not None:   # training needs it; building a model to load weights does not
         mu, sd = scaler
         assert list(SW_COLS[: len(mu)]) == list(SCALED), "scaler columns must be the leading input channels"
