@@ -162,6 +162,7 @@ for seed in SEEDS:                               # seed-major order so that part
         t0 = time.time()
         torch.manual_seed(seed); np.random.seed(seed)
         cfg = configure(copy.deepcopy(base_cfg), fam, scaler=blk.scaler)
+        if args.epochs: cfg["training"]["epochs"] = args.epochs   # smoke-test override wins over family settings
         cfg["training"]["checkpoint_dir"] = str(CK); cfg["training"]["log_dir"] = str(OUT / f"tb_tmp_{TMPTAG}")
         trainer = Trainer(cfg)
         tr_loader, va_loader, te_loader, tr_ds, va_ds, te_ds = make_loaders(blk, batch_size=cfg["training"]["batch_size"],

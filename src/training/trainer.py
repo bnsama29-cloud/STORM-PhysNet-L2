@@ -31,6 +31,16 @@ def physics_scale(epoch: int, start: int, end: int) -> float:
         return (epoch - start) / (end - start)
     return 1.0
 
+
+def selection_mse(pred: torch.Tensor, target: torch.Tensor, select_on: str = "last") -> float:
+    """Validation MSE used for model selection: of the longest lead time ("last", the default) or the mean over all
+    lead times ("mean")."""
+    if select_on == "last":
+        return (pred[:, -1] - target[:, -1]).pow(2).mean().item()
+    if select_on == "mean":
+        return (pred - target).pow(2).mean().item()
+    raise ValueError(f"select_on must be 'last' or 'mean', got {select_on!r}")
+
 class Trainer:
     """
     Training orchestrator for STORM-PhysNet (single or ensemble).
@@ -336,9 +346,8 @@ class Trainer:
                 if torch.isnan(loss) or torch.isinf(loss):
                     continue
                 losses.append(loss.item())
-                sq_errs.append(
-                    ((outputs["flux_pred"][:, -1] -
-                      batch["y_flux"][:, -1]).pow(2).mean().item()))
+                sq_errs.append(selection_mse(outputs["flux_pred"], batch["y_flux"],
+                                             self.cfg["training"].get("select_on", "last")))
         if not losses:   # all batches were NaN — should never happen after input guard
             return float("nan"), float("nan")
         return np.mean(losses), np.mean(sq_errs)
