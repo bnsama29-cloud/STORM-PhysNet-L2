@@ -83,3 +83,18 @@ def test_transfer_train_returns_best_validation_state():
     m, ep, best = T.train(m, sets, 1e-3, 0, list(m.parameters()), "cpu", epochs=3, patience=2)
     after = T.wmse(torch.from_numpy(T.predict(m, sets["val"], "cpu")), torch.full((128, 3), 0.5), T.horizon_weights("cpu")).item()
     assert 1 <= ep <= 3 and after == pytest.approx(best, rel=1e-4) and after < before
+
+
+def test_transfer_models_are_built_for_the_training_window(tmp_path):
+    """A checkpoint trained on a 24 h window must load in the transfer step (STORM-PhysNet sizes pos_emb by it)."""
+    import subprocess
+    code = ("import sys; sys.path.insert(0, 'pipeline'); sys.path.insert(0, '.');"
+            "from storm_pipeline.transfer import Models; import torch;"
+            f"M = Models('.', '{tmp_path}', '{tmp_path}', torch.device('cpu'));"
+            "m = M.build('storm_bz_tp_L24'); print(M.cfg['data']['sequence_length'], tuple(m.pos_emb.shape))")
+    root = Path(__file__).resolve().parents[1]
+    for seq, want in (("24", "24 (1, 24, 128)"), ("72", "72 (1, 72, 128)")):
+        r = subprocess.run([sys.executable, "-c", code], cwd=root, capture_output=True, text=True,
+                           env={**__import__("os").environ, "STORM_SEQ": seq, "TQDM_DISABLE": "1"})
+        assert r.returncode == 0, r.stderr[-800:]
+        assert r.stdout.strip().splitlines()[-1] == want

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """LaTeX tables of the journal paper from numbers.json (journal_analysis.py). Needs \\usepackage{adjustbox,booktabs}.
 
-  python journal_tables.py --numbers journal_report/numbers.json --out paper/tables
+  python journal_tables.py --numbers journal_report/numbers.json --out tables
 
 Families listed in ORDER but missing from numbers.json are printed as pending rows (\\pend{}), so the tables can
 be regenerated unchanged once the remaining Kaggle runs are in.

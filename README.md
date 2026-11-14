@@ -4,8 +4,9 @@ STORM-PhysNet forecasts the >2 MeV electron flux at geostationary orbit 1, 6, 12
 history of GOES electron flux, solar-wind and geomagnetic data, and tests how well GOES-15-trained models transfer
 to other satellites (GOES-16, GOES-18 and India's GSAT-19 GRASP).
 
-This repository holds the code, data, Kaggle scripts and manuscript source of the **journal version**
-(prepared for submission to *Advances in Space Research*; source in `paper/`, results in `paper/results/`).
+This repository holds the code, data, Kaggle scripts and results of the **journal version**
+(prepared for submission to *Advances in Space Research*; results in `results/`). The manuscript itself is not
+included; it will be linked here once published.
 The conference version, *STORM-PhysNet: Multi-Horizon Forecasting of Relativistic Electron Hazards to Geostationary
 Satellites with Transfer to GSAT-19* (AGERS 2026), is in the separate repository STORM-PhysNet-L1.
 
@@ -45,7 +46,7 @@ models are also retrained with 24 h and 168 h input windows (120 more network ru
 - `pipeline/` — block pipeline, model-family registry, transfer experiments, Kaggle script generator
 - `datasets/` — GOES-15, GOES-16/18 (hourly >2 MeV), OMNI 2010–2026 and GRASP data
 - `configs/` — training configuration
-- `paper/` — manuscript source (Elsevier CAS template), generated tables and figures, `results/` (numbers.json, run logs)
+- `results/` — every number behind the paper's tables and figures (`numbers.json`, `extra.json`) and the run logs
 - `tests/` — unit and integration tests (`python -m pytest -q tests`)
 - `legacy/` — results, checkpoints and notebook of the earlier single-split experiments (superseded; kept for reference)
 

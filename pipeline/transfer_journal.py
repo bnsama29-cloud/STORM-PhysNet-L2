@@ -38,8 +38,10 @@ ap.add_argument("--epochs", type=int, default=30); ap.add_argument("--patience",
 ap.add_argument("--train_stride", type=int, default=1, help="GOES-16/18 only: use every n-th training window")
 ap.add_argument("--max_windows", type=int, default=None, help="smoke test only")
 ap.add_argument("--stop_after_hours", type=float, default=None, help="start no new seed after this many hours")
+ap.add_argument("--lookback", type=int, default=72, help="input window in hours; must match the families (campaign 8: 24)")
 args = ap.parse_args()
 os.environ["STORM_HSTEPS"] = args.horizons
+os.environ["STORM_SEQ"] = str(args.lookback)   # before storm_pipeline.data is imported, which reads it once
 
 import numpy as np, pandas as pd, torch
 from types import SimpleNamespace
@@ -56,6 +58,9 @@ DEV = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 a, b = (args.seeds.split("-") + [None])[:2]
 SEEDS = list(range(int(a), int(b) + 1)) if b else [int(s) for s in args.seeds.split(",")]
 TARGETS, FAMS, VARIANTS = args.targets.split(","), args.families.split(","), args.variants.split(",")
+from storm_pipeline.families import SPEC
+for _f in FAMS:
+    assert _f in CLASSICAL or SPEC[_f].get("lookback", 72) == SEQ, f"{_f} needs --lookback {SPEC[_f].get('lookback', 72)}"
 assert set(VARIANTS) <= {"zeroshot", "heads", "full", "scratch"}, f"unknown variants {VARIANTS}"
 TMPTAG = str(os.getpid()); T_START = time.time()
 
