@@ -143,6 +143,11 @@ def analyse(meta, P, transfer_dirs):
     # training-protocol check (campaign 6): protocol B minus the original protocol, per model (positive: B better)
     N["paired_tp"] = sum((paired(S, f + "_tp", [f], H) for f in ("lstm_res", "storm_lstm_backbone", "tf_ffn_res",
                                                                 "storm_bz") if f + "_tp" in S), [])
+    # gradient-boosted trees against the strongest networks under both training protocols (positive: trees better)
+    N["paired_gbm"] = paired(S, "gbm_res", ["tf_ffn_res", "tf_ffn_res_tp", "storm_bz_tp", "storm_lstm_backbone",
+                                             "lstm_res", "lstm_res_tp"], H)
+    # protocol B: STORM-PhysNet against its LSTM variant and the residual Transformer (positive: STORM-PhysNet better)
+    N["paired_tp_cross"] = paired(S, "storm_bz_tp", ["storm_lstm_backbone_tp", "tf_ffn_res_tp"], H)
     N["paired_e1"] = (paired(S, "storm_lstm_physfix_e1", ["storm_lstm_physfix", "storm_lstm_no_physics"], H)
                       + paired(S, "storm_physfix_e1", ["storm_physfix", "storm_no_physics"], H))
     # 3. storm-time RMSE (Dst <= -50 nT at the target hour)

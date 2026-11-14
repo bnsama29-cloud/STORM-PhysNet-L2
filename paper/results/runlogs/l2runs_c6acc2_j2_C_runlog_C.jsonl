@@ -1,0 +1,10 @@
+{"block": "C", "family": "tf_ffn_res_tp", "seed": 42, "epochs": 16, "best_val_mse": 0.102, "seconds": 178.9, "n_params": 267908}
+{"block": "C", "family": "tf_ffn_res_tp", "seed": 47, "epochs": 25, "best_val_mse": 0.098, "seconds": 267.9, "n_params": 267908}
+{"block": "C", "family": "tf_ffn_res_tp", "seed": 43, "epochs": 15, "best_val_mse": 0.1021, "seconds": 168.8, "n_params": 267908}
+{"block": "C", "family": "tf_ffn_res_tp", "seed": 48, "epochs": 16, "best_val_mse": 0.104, "seconds": 175.6, "n_params": 267908}
+{"block": "C", "family": "tf_ffn_res_tp", "seed": 44, "epochs": 23, "best_val_mse": 0.0971, "seconds": 247.5, "n_params": 267908}
+{"block": "C", "family": "tf_ffn_res_tp", "seed": 49, "epochs": 20, "best_val_mse": 0.0981, "seconds": 212.3, "n_params": 267908}
+{"block": "C", "family": "tf_ffn_res_tp", "seed": 45, "epochs": 28, "best_val_mse": 0.0986, "seconds": 294.2, "n_params": 267908}
+{"block": "C", "family": "tf_ffn_res_tp", "seed": 50, "epochs": 25, "best_val_mse": 0.0996, "seconds": 262.1, "n_params": 267908}
+{"block": "C", "family": "tf_ffn_res_tp", "seed": 46, "epochs": 19, "best_val_mse": 0.1001, "seconds": 207.6, "n_params": 267908}
+{"block": "C", "family": "tf_ffn_res_tp", "seed": 51, "epochs": 16, "best_val_mse": 0.1016, "seconds": 173.9, "n_params": 267908}

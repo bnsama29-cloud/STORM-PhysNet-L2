@@ -44,7 +44,9 @@ ORDER = [  # (family, label, group)
     ("storm_magnetopause", "\\quad + magnetopause features", "STORM-PhysNet and variants"),
 ]
 LABEL = {f: l.replace("\\quad ", "STORM-PhysNet, " if f.startswith("storm_") else "Residual TF ") for f, l, _ in ORDER}
-LABEL.update({"lstm_res_w64": "LSTM, residual, width 64", "lstm_res_w256": "LSTM, residual, width 256"})
+LABEL.update({"lstm_res_w64": "LSTM, residual, width 64", "lstm_res_w256": "LSTM, residual, width 256",
+              "lstm_res_tp": "LSTM, residual, training protocol B",
+              "tf_ffn_res_tp": "Residual TF, training protocol B"})
 
 
 def f3(v): return "--" if v is None or v != v else f"{v:.3f}"

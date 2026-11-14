@@ -14,14 +14,17 @@ Gradient-boosted trees, residual & 0.789 & 0.738 & 0.662 & 0.646 & 0.602 & 0.813
 LSTM, residual & 0.772 & 0.724 & 0.574 & 0.666 & 0.677 & 0.786 \\
 \quad width 64 & 0.767 & 0.713 & 0.555 & 0.663 & 0.674 & 0.784 \\
 \quad width 256 & 0.764 & 0.713 & 0.564 & 0.653 & 0.662 & 0.777 \\
+\quad training protocol B & 0.772 & 0.721 & 0.566 & 0.662 & 0.675 & 0.786 \\
 MLP & 0.774 & 0.711 & 0.465 & 0.625 & 0.620 & 0.792 \\
 CNN & 0.033 & -2.232 & -12.587 & 0.390 & -0.290 & 0.545 \\
 Transformer (default size) & 0.767 & 0.656 & 0.323 & 0.580 & 0.583 & 0.799 \\
 Transformer, matched & 0.765 & 0.660 & 0.330 & 0.589 & 0.609 & 0.795 \\
 Transformer, FFN 256 & 0.761 & 0.646 & 0.291 & 0.582 & 0.621 & 0.797 \\
 Residual Transformer & 0.746 & 0.606 & 0.258 & 0.612 & 0.604 & 0.797 \\
+\quad training protocol B & 0.764 & 0.623 & 0.246 & 0.631 & 0.621 & 0.808 \\
 \quad + fixed average & 0.764 & 0.680 & 0.431 & 0.612 & 0.603 & 0.794 \\
 STORM-PhysNet & 0.696 & 0.563 & 0.289 & 0.568 & 0.537 & 0.746 \\
+\quad training protocol B & 0.758 & 0.645 & 0.377 & 0.633 & 0.658 & 0.792 \\
 \quad fixed average & 0.696 & 0.567 & 0.292 & 0.558 & 0.535 & 0.743 \\
 \quad no physics loss & 0.707 & 0.577 & 0.308 & 0.583 & 0.559 & 0.756 \\
 \quad physical-unit loss & 0.698 & 0.568 & 0.295 & 0.572 & 0.538 & 0.747 \\
@@ -30,6 +33,7 @@ STORM-PhysNet & 0.696 & 0.563 & 0.289 & 0.568 & 0.537 & 0.746 \\
 \quad cathode--anode + spectral head & 0.701 & 0.570 & 0.286 & 0.558 & 0.515 & 0.752 \\
 \quad radiotrophic gate & 0.693 & 0.563 & 0.299 & 0.560 & 0.480 & 0.743 \\
 \quad LSTM encoder & 0.777 & 0.736 & 0.603 & 0.679 & 0.681 & 0.788 \\
+\quad LSTM encoder, training protocol B & 0.773 & 0.731 & 0.598 & 0.677 & 0.689 & 0.784 \\
 \quad LSTM encoder, no gate & 0.775 & 0.738 & 0.621 & 0.677 & 0.666 & 0.785 \\
 \quad LSTM encoder, no delay & 0.775 & 0.726 & 0.563 & 0.668 & 0.677 & 0.788 \\
 \quad LSTM encoder, no physics loss & 0.771 & 0.728 & 0.591 & 0.673 & 0.678 & 0.783 \\

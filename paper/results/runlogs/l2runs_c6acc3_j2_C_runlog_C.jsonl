@@ -1,0 +1,10 @@
+{"block": "C", "family": "storm_bz_tp", "seed": 47, "epochs": 31, "best_val_mse": 0.104, "seconds": 528.3, "n_params": 360227}
+{"block": "C", "family": "storm_bz_tp", "seed": 42, "epochs": 33, "best_val_mse": 0.1104, "seconds": 569.7, "n_params": 360227}
+{"block": "C", "family": "storm_bz_tp", "seed": 48, "epochs": 24, "best_val_mse": 0.1041, "seconds": 409.8, "n_params": 360227}
+{"block": "C", "family": "storm_bz_tp", "seed": 43, "epochs": 36, "best_val_mse": 0.101, "seconds": 615.7, "n_params": 360227}
+{"block": "C", "family": "storm_bz_tp", "seed": 49, "epochs": 32, "best_val_mse": 0.1009, "seconds": 537.9, "n_params": 360227}
+{"block": "C", "family": "storm_bz_tp", "seed": 44, "epochs": 26, "best_val_mse": 0.1032, "seconds": 444.3, "n_params": 360227}
+{"block": "C", "family": "storm_bz_tp", "seed": 50, "epochs": 25, "best_val_mse": 0.1061, "seconds": 424.8, "n_params": 360227}
+{"block": "C", "family": "storm_bz_tp", "seed": 45, "epochs": 35, "best_val_mse": 0.1055, "seconds": 599.2, "n_params": 360227}
+{"block": "C", "family": "storm_bz_tp", "seed": 51, "epochs": 36, "best_val_mse": 0.1043, "seconds": 609.1, "n_params": 360227}
+{"block": "C", "family": "storm_bz_tp", "seed": 46, "epochs": 34, "best_val_mse": 0.1021, "seconds": 559.3, "n_params": 360227}

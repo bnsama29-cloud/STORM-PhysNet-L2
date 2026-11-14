@@ -15,7 +15,7 @@ from the saved predictions. The same leakage-controlled pipeline produced the AG
 | `train_block.py` | Trains families × seeds for one block, saving test predictions, predicted log-variance, noise/driver-probe predictions, delay/gate values and (spectral variant) the spectral-head prediction. Resumable; `--stop_after_hours` ends a session cleanly. |
 | `transfer_journal.py` | Block-A GOES-15 models → GOES-16, GOES-18 and GSAT-19 GRASP: zero-shot, heads-only, full fine-tuning and from-scratch, chronological folds |
 | `goesr_download.py` | Builds `datasets/goesr/` (NOAA MPS-HI >2 MeV, telescope 4, hourly) and the 2021–2026 OMNI file |
-| `make_journal_kaggle.py` | Writes the Kaggle scripts of journal campaigns 1–5 into `kaggle/` |
+| `make_journal_kaggle.py` | Writes the Kaggle scripts of journal campaigns 1–6 into `kaggle/` |
 | `classical_baselines.py` | Ridge regression and gradient-boosted trees (LightGBM) on 75 window-summary features |
 | `gbm_importance.py` | Grouped split-gain importance of the block-A gradient-boosted trees |
 | `journal_analysis.py`, `journal_tables.py`, `journal_figures.py` | Scores, paired tests, tables and figures of the paper |
@@ -43,6 +43,7 @@ early-stopping patience 12, learning rate 3e-4, storm oversampling ×12.
 | `storm_lstm_no_gate`, `storm_lstm_no_delay`, `storm_lstm_no_physics` | One-component ablations of the LSTM variant |
 | `storm_physfix`, `storm_lstm_physfix` | Physics terms evaluated in physical units (both encoders) |
 | `storm_physfix_e1`, `storm_lstm_physfix_e1` | As above with the physics terms at full weight from epoch 1 (campaign 5) |
+| `lstm_res_tp`, `tf_ffn_res_tp`, `storm_bz_tp`, `storm_lstm_backbone_tp` | Training protocol B (lr 1e-4, 1 warm-up epoch, up to 60 epochs, selection on mean validation MSE; campaign 6) |
 | `ridge_res`, `gbm_res` | Classical baselines (`classical_baselines.py`) |
 
 The early hybrid SSM/iTransformer backbone was removed; `backbone` accepts `transformer` or `lstm`.
@@ -54,7 +55,7 @@ The nine conference families were run with horizons 1/6/12/24 h by the scripts o
 
 1. `python make_journal_kaggle.py <commit> [--campaign N]` writes `kaggle/journal[N]_account*.py` (all already
    generated here). Campaign 1: new families; 2: LSTM attribution; 3: physical-unit loss; 4: residual-LSTM widths
-   and gradient-boosted trees; 5: physics terms at full weight from the first epoch.
+   and gradient-boosted trees; 5: physics terms at full weight from the first epoch; 6: training protocol B for four networks.
 2. Paste one script per Kaggle account into a new notebook. Settings: GPU T4 x2, Internet ON. Save & Run All.
 3. Each session trains for at most 10 hours. If the log ends with `NOT FINISHED`, add the notebook's own output as an
    Input and run it again; finished runs are skipped.

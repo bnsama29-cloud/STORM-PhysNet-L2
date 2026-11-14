@@ -19,6 +19,7 @@ LSTM & 0.929 & 0.833 & 0.791 & 0.726 \\
 LSTM, residual & 0.974 & 0.849 & 0.789 & 0.732 \\
 \quad width 64 & 0.974 & 0.847 & 0.786 & 0.732 \\
 \quad width 256 & 0.974 & 0.841 & 0.781 & 0.731 \\
+\quad training protocol B & 0.974 & 0.852 & 0.790 & 0.724 \\
 MLP & 0.932 & 0.842 & 0.796 & 0.718 \\
 CNN & 0.766 & 0.608 & 0.547 & 0.519 \\
 \multicolumn{5}{l}{\textit{Transformer controls}} \\
@@ -26,10 +27,12 @@ Transformer (default size) & 0.958 & 0.850 & 0.802 & 0.733 \\
 Transformer, matched & 0.961 & 0.848 & 0.797 & 0.737 \\
 Transformer, FFN 256 & 0.960 & 0.849 & 0.799 & 0.737 \\
 Residual Transformer & 0.972 & 0.850 & 0.798 & 0.741 \\
+\quad training protocol B & 0.976 & 0.865 & 0.811 & 0.725 \\
 \quad + fixed average & 0.972 & 0.847 & 0.795 & 0.738 \\
 Flux-only Transformer & 0.962 & 0.823 & 0.747 & 0.646 \\
 \multicolumn{5}{l}{\textit{STORM-PhysNet and variants}} \\
 STORM-PhysNet & 0.972 & 0.814 & 0.749 & 0.731 \\
+\quad training protocol B & 0.976 & 0.859 & 0.795 & 0.711 \\
 \quad fixed average & 0.971 & 0.811 & 0.745 & 0.733 \\
 \quad no delay & 0.971 & 0.814 & 0.748 & 0.736 \\
 \quad no gate & 0.972 & 0.818 & 0.754 & 0.732 \\
@@ -40,6 +43,7 @@ STORM-PhysNet & 0.972 & 0.814 & 0.749 & 0.731 \\
 \quad cathode--anode + spectral head & 0.971 & 0.816 & 0.753 & 0.735 \\
 \quad radiotrophic gate & 0.971 & 0.807 & 0.746 & 0.733 \\
 \quad LSTM encoder & 0.975 & 0.852 & 0.790 & 0.725 \\
+\quad LSTM encoder, training protocol B & 0.975 & 0.849 & 0.787 & 0.711 \\
 \quad LSTM encoder, no gate & 0.975 & 0.849 & 0.787 & 0.726 \\
 \quad LSTM encoder, no delay & 0.975 & 0.850 & 0.791 & 0.729 \\
 \quad LSTM encoder, no physics loss & 0.975 & 0.848 & 0.785 & 0.725 \\

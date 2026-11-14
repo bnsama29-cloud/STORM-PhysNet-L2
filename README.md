@@ -22,7 +22,9 @@ A delay–encode–gate–decode design:
 The journal study compares it with 28 other neural model families (ablations, alternative gates, a spectral head,
 an LSTM encoder and its ablations, magnetopause features, the physics loss in physical units, Transformer controls,
 a residual LSTM at three widths and standard baselines) and two classical baselines (ridge regression and
-gradient-boosted trees on window summaries; `pipeline/classical_baselines.py`). See `pipeline/README.md`.
+gradient-boosted trees on window summaries; `pipeline/classical_baselines.py`). Four networks are also retrained
+with a second training protocol (learning rate 1e-4, one warm-up epoch, up to 60 epochs, selection on the mean
+validation error over all lead times): 33 neural families and 990 training runs in all. See `pipeline/README.md`.
 
 ## Evaluation protocol
 
@@ -52,8 +54,8 @@ pip install -r requirements.txt
 python -m pytest -q tests
 ```
 
-Full training runs on Kaggle with the scripts in `pipeline/kaggle/` (campaigns 1–5; campaign 5 trains the
-physics terms at full weight from the first epoch); see `pipeline/README.md`.
+Full training runs on Kaggle with the scripts in `pipeline/kaggle/` (campaigns 1–6; campaign 5 trains the
+physics terms at full weight from the first epoch, campaign 6 uses training protocol B); see `pipeline/README.md`.
 Tables and figures: `pipeline/journal_analysis.py`, `journal_tables.py`, `journal_figures.py`.
 
 ## License and data

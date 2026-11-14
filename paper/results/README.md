@@ -6,4 +6,4 @@
   parameters), named after the Kaggle campaign folder it came from. Early stopping uses patience 12, so the
   epoch whose weights were kept is `epochs - 12`.
 
-The saved predictions of all runs (1.3 GB) are available from the author on request.
+The saved predictions of all runs (1.4 GB) are available from the corresponding author on request.
