@@ -42,3 +42,6 @@ ieee_paper/
 # Local tool state and training logs
 .clawness/
 logs/
+
+# Manuscript sources are kept out of this repository until publication
+paper/

@@ -19,7 +19,7 @@ JOURNAL = ["transformer", "tf_ffn256", "mlp", "cnn", "storm_no_physics", "storm_
            "storm_physfix", "storm_lstm_physfix", "lstm_res_w64", "lstm_res_w256",
            "storm_physfix_e1", "storm_lstm_physfix_e1",
            "lstm_res_tp", "storm_lstm_backbone_tp", "tf_ffn_res_tp", "storm_bz_tp",
-           "lstm_res_L24", "lstm_res_L168", "tf_ffn_res_tp_L24", "tf_ffn_res_tp_L168"]
+           "lstm_res_L24", "lstm_res_L168", "tf_ffn_res_tp_L24", "tf_ffn_res_tp_L168", "storm_bz_tp_L24"]
 
 
 def make(fam, tmp_path, scaler=None):
@@ -237,11 +237,11 @@ def test_lookback_families_carry_window_and_base_settings():
 
 @pytest.mark.parametrize("L", [24, 168])
 def test_lookback_families_run_on_their_window_length(L, tmp_path):
-    for fam in (f"lstm_res_L{L}", f"tf_ffn_res_tp_L{L}"):
+    for fam in (f"lstm_res_L{L}", f"tf_ffn_res_tp_L{L}") + (("storm_bz_tp_L24",) if L == 24 else ()):
         m = make(fam, tmp_path).eval()
         x = torch.randn(2, L, len(SW_COLS)); f = torch.randn(2, L, 1)
         with torch.no_grad():
-            out = m(x, f)
+            out = m(x, f) if not fam.startswith("storm") else m(x_sw=x, x_flux=f, y_persist=torch.zeros(2, len(HSTEPS)))
         assert out["flux_pred"].shape == (2, len(HSTEPS)) and torch.isfinite(out["flux_pred"]).all()
 
 
@@ -251,3 +251,22 @@ def test_kaggle_lookback_of_accounts():
     assert [lookback_of(f) for f, _ in CAMPAIGN7.values()] == [24, 168, 168]
     with pytest.raises(AssertionError):
         lookback_of("lstm_res_L24,lstm_res_L168")
+
+
+def test_storm_physnet_24h_family_is_protocol_b_on_a_24h_window():
+    from storm_pipeline.families import SPEC, base_family
+    s = SPEC["storm_bz_tp_L24"]
+    assert s["lookback"] == 24 and {k: v for k, v in s.items() if k != "lookback"} == SPEC["storm_bz_tp"]
+    assert base_family("storm_bz_tp_L24") == "storm_bz"
+
+
+def test_kaggle_campaign8_runs_probes_and_transfer_on_the_24h_window(tmp_path, monkeypatch):
+    import make_journal_kaggle as mk
+    from pathlib import Path
+    monkeypatch.setattr(mk, "__file__", str(tmp_path / "make_journal_kaggle.py"))
+    mk.main("0" * 40, campaign=8)
+    s = (tmp_path / "kaggle" / "journal8_account1.py").read_text()
+    assert "LB = 24 " in s and "FULL = True " in s and "--lookback {LB} --stop_after_hours" in s
+    assert "tf_ffn_res_tp_L24,storm_bz_tp_L24" in s
+    mk.main("0" * 40, campaign=7)
+    assert "FULL = False " in (tmp_path / "kaggle" / "journal7_account1.py").read_text()

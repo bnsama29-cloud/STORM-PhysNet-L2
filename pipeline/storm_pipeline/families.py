@@ -67,6 +67,8 @@ for _base in ("lstm_res", "storm_lstm_backbone", "tf_ffn_res", "storm_bz"):
 for _base in ("lstm_res", "tf_ffn_res_tp"):
     for _L in (24, 168):
         SPEC[f"{_base}_L{_L}"] = dict(SPEC[_base], lookback=_L)
+# Campaign 8: STORM-PhysNet with protocol B and the 24 h window that the residual Transformer prefers
+SPEC["storm_bz_tp_L24"] = dict(SPEC["storm_bz_tp"], lookback=24)
 
 
 def base_family(family):

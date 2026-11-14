@@ -1,7 +1,0 @@
-Highlights
-
-- Over twenty forecast models compared on three test periods with ten seeds each.
-- Persistence residual explains 1 h skill; solar-wind drivers explain 6–24 h skill.
-- Physics-inspired delay and gates do not change accuracy significantly.
-- Longer training and a 24 h window let a Transformer beat boosted trees at 6–24 h.
-- Forecasting changes, not levels, survives a factor-of-two satellite offset.

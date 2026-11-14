@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np, torch, torch.nn as nn, yaml
 from torch.utils.data import DataLoader
 
-from .data import SW_COLS, HSTEPS
+from .data import SW_COLS, HSTEPS, SEQ
 from .families import configure, build as build_family
 
 H_WEIGHT = {1: 1.0, 6: 0.7, 12: 0.5, 24: 0.4}           # same per-horizon weights as train_block.py
@@ -28,6 +28,7 @@ class Models:
         self.Trainer, self.dev, self.ckpt, self.scratch = Trainer, device, Path(ckpt_dir), Path(scratch_dir)
         self.cfg = yaml.safe_load(open(Path(repo) / "configs/config.yaml"))
         self.cfg["data"]["forecast_horizons"] = [float(h) for h in HSTEPS]
+        self.cfg["data"]["sequence_length"] = SEQ   # as in train_block.py: STORM-PhysNet sizes its position table by it
 
     def build(self, fam):
         c = configure(copy.deepcopy(self.cfg), fam)

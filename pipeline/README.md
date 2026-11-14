@@ -46,6 +46,7 @@ early-stopping patience 12, learning rate 3e-4, storm oversampling ×12.
 | `storm_physfix_e1`, `storm_lstm_physfix_e1` | As above with the physics terms at full weight from epoch 1 (campaign 5) |
 | `lstm_res_tp`, `tf_ffn_res_tp`, `storm_bz_tp`, `storm_lstm_backbone_tp` | Training protocol B (lr 1e-4, 1 warm-up epoch, up to 60 epochs, selection on mean validation MSE; campaign 6) |
 | `lstm_res_L24`, `lstm_res_L168`, `tf_ffn_res_tp_L24`, `tf_ffn_res_tp_L168` | Input windows of 24 h and 168 h instead of 72 h (campaign 7; `train_block.py --lookback`) |
+| `storm_bz_tp_L24` | STORM-PhysNet with protocol B and the 24 h window (campaign 8) |
 | `ridge_res`, `gbm_res` | Classical baselines (`classical_baselines.py`) |
 
 The early hybrid SSM/iTransformer backbone was removed; `backbone` accepts `transformer` or `lstm`.
@@ -58,7 +59,8 @@ The nine conference families were run with horizons 1/6/12/24 h by the scripts o
 1. `python make_journal_kaggle.py <commit> [--campaign N]` writes `kaggle/journal[N]_account*.py` (all already
    generated here). Campaign 1: new families; 2: LSTM attribution; 3: physical-unit loss; 4: residual-LSTM widths
    and gradient-boosted trees; 5: physics terms at full weight from the first epoch; 6: training protocol B for four networks; 7: input windows
-   of 24 h and 168 h (`--lookback`; own test windows, compared on the common forecast origins).
+   of 24 h and 168 h (`--lookback`; own test windows, compared on the common forecast origins); 8: the 24 h
+   residual Transformer and STORM-PhysNet with probes and transfer (`transfer_journal.py --lookback 24`).
 2. Paste one script per Kaggle account into a new notebook. Settings: GPU T4 x2, Internet ON. Save & Run All.
 3. Each session trains for at most 10 hours. If the log ends with `NOT FINISHED`, add the notebook's own output as an
    Input and run it again; finished runs are skipped.
