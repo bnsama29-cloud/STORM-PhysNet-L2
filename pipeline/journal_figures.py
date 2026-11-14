@@ -240,11 +240,12 @@ def fig_transfer(N, out):
 
 
 # ------------------------------------------------------------------------------------------------ scorecard of the main models
-SCORE_MODELS = ["gbm_res", "ridge_res", "lstm_res", "storm_lstm_backbone", "tf_ffn_res", "transformer_matched",
-                "storm_bz", "mlp"]
+SCORE_MODELS = ["gbm_res", "ridge_res", "lstm_res", "storm_lstm_backbone", "tf_ffn_res", "tf_ffn_res_tp",
+                "transformer_matched", "storm_bz", "storm_bz_tp", "mlp"]
 SCORE_LABEL = {"gbm_res": "Gradient-boosted trees", "ridge_res": "Ridge regression", "lstm_res": "Residual LSTM",
                "storm_lstm_backbone": "STORM-PhysNet (LSTM enc.)", "tf_ffn_res": "Residual Transformer",
-               "transformer_matched": "Matched Transformer", "storm_bz": "STORM-PhysNet", "mlp": "MLP"}
+               "transformer_matched": "Matched Transformer", "storm_bz": "STORM-PhysNet", "mlp": "MLP",
+               "tf_ffn_res_tp": "Residual Transformer (prot. B)", "storm_bz_tp": "STORM-PhysNet (prot. B)"}
 
 
 def scorecard_table(N, h=12):
@@ -270,7 +271,7 @@ def fig_scorecard(N, out, h=12):
     R = np.zeros_like(V)
     for j, (_, hib) in enumerate(cols):
         order = np.argsort(-V[:, j] if hib else V[:, j]); R[order, j] = np.arange(len(models))
-    fig, ax = plt.subplots(figsize=(COL2, 3.0))
+    fig, ax = plt.subplots(figsize=(COL2, 0.6 + 0.3 * len(models)))
     ax.imshow(R, cmap="YlGnBu_r", vmin=-1.5, vmax=len(models) + 1.5, aspect="auto")
     for r in range(len(models)):
         for c in range(len(cols)):
