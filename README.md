@@ -4,7 +4,8 @@ STORM-PhysNet forecasts the >2 MeV electron flux at geostationary orbit 1, 6, 12
 history of GOES electron flux, solar-wind and geomagnetic data, and tests how well GOES-15-trained models transfer
 to other satellites (GOES-16, GOES-18 and India's GSAT-19 GRASP).
 
-This repository holds the code, data and Kaggle scripts of the **journal version** (manuscript in preparation).
+This repository holds the code, data, Kaggle scripts and manuscript source of the **journal version**
+(prepared for submission to *Advances in Space Research*; source in `paper/`, results in `paper/results/`).
 The conference version, *STORM-PhysNet: Multi-Horizon Forecasting of Relativistic Electron Hazards to Geostationary
 Satellites with Transfer to GSAT-19* (AGERS 2026), is in the separate repository STORM-PhysNet-L1.
 
@@ -18,8 +19,10 @@ A delay–encode–gate–decode design:
 4. forecast heads that predict a correction to persistence, with a predicted variance;
 5. a loss with storm-weighted β-NLL and physics-informed penalty terms.
 
-The journal study compares it with 18 other families: ablations, alternative gates, a spectral head, an LSTM
-encoder, magnetopause features, Transformer controls and standard baselines (see `pipeline/README.md`).
+The journal study compares it with 26 other neural model families (ablations, alternative gates, a spectral head,
+an LSTM encoder and its ablations, magnetopause features, the physics loss in physical units, Transformer controls,
+a residual LSTM at three widths and standard baselines) and two classical baselines (ridge regression and
+gradient-boosted trees on window summaries; `pipeline/classical_baselines.py`). See `pipeline/README.md`.
 
 ## Evaluation protocol
 
@@ -38,6 +41,7 @@ encoder, magnetopause features, Transformer controls and standard baselines (see
 - `pipeline/` — block pipeline, model-family registry, transfer experiments, Kaggle script generator
 - `datasets/` — GOES-15, GOES-16/18 (hourly >2 MeV), OMNI 2010–2026 and GRASP data
 - `configs/` — training configuration
+- `paper/` — manuscript source (Elsevier CAS template), generated tables and figures, `results/` (numbers.json, run logs)
 - `tests/` — unit and integration tests (`python -m pytest -q tests`)
 - `legacy/` — results, checkpoints and notebook of the earlier single-split experiments (superseded; kept for reference)
 
@@ -48,7 +52,9 @@ pip install -r requirements.txt
 python -m pytest -q tests
 ```
 
-Full training runs on Kaggle with the scripts in `pipeline/kaggle/`; see `pipeline/README.md`.
+Full training runs on Kaggle with the scripts in `pipeline/kaggle/` (campaigns 1–4 are the paper; campaign 5 is
+an optional follow-up with the physics terms at full weight from the first epoch); see `pipeline/README.md`.
+Tables and figures: `pipeline/journal_analysis.py`, `journal_tables.py`, `journal_figures.py`.
 
 ## License and data
 

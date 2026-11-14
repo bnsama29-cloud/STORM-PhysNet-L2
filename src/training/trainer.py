@@ -22,6 +22,15 @@ from src.training.physics_loss import PhysicsInformedLoss, LossWeights
 from src.data.dataloader import make_dataloaders
 
 
+
+def physics_scale(epoch: int, start: int, end: int) -> float:
+    """Weight of the physics terms in a 1-based epoch: 0 up to `start`, linear to 1 at `end`, then 1."""
+    if epoch <= start:
+        return 0.0
+    if epoch <= end:
+        return (epoch - start) / (end - start)
+    return 1.0
+
 class Trainer:
     """
     Training orchestrator for STORM-PhysNet (single or ensemble).
@@ -185,8 +194,10 @@ class Trainer:
         physics_loss_fn = PhysicsInformedLoss(base_weights).to(self.device)
         if lw.get("input_scaler") is not None:     # physics terms in physical units (journal "physfix" families)
             physics_loss_fn.set_input_scaler(*lw["input_scaler"], dst_idx=lw.get("dst_idx"), kp_idx=lw.get("kp_idx"))
-        physics_ramp_start = tr["warmup_epochs"]            # epoch when physics turns on
-        physics_ramp_end   = tr["warmup_epochs"] + 10      # full weight after 10 more epochs
+        # physics terms are off up to physics_ramp_start and reach full weight physics_ramp_len epochs later
+        # (default: off during the 5 warm-up epochs, full weight at epoch 15)
+        physics_ramp_start = tr.get("physics_ramp_start", tr["warmup_epochs"])
+        physics_ramp_end   = physics_ramp_start + tr.get("physics_ramp_len", 10)
 
         # Store original physics lambda values for proper warmup scaling
         original_physics_lambdas = {
@@ -225,12 +236,7 @@ class Trainer:
             # Epochs 1..warmup: physics weight = 0 (learn data pattern first)
             # Epochs warmup+1..warmup+10: linearly ramp to full weight
             # Epoch warmup+10+: full physics weight
-            if epoch <= physics_ramp_start:
-                phys_scale = 0.0
-            elif epoch <= physics_ramp_end:
-                phys_scale = (epoch - physics_ramp_start) / (physics_ramp_end - physics_ramp_start)
-            else:
-                phys_scale = 1.0
+            phys_scale = physics_scale(epoch, physics_ramp_start, physics_ramp_end)
             # Scale physics lambda weights during warmup (SET, not multiply)
             for attr, orig_val in original_physics_lambdas.items():
                 if hasattr(physics_loss_fn.w, attr):

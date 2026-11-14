@@ -16,7 +16,8 @@ CONFERENCE = ["lstm", "transformer_matched", "tf_ffn_res", "tf_flux_only", "stor
 JOURNAL = ["transformer", "tf_ffn256", "mlp", "cnn", "storm_no_physics", "storm_cathode", "storm_cathode_spec",
            "storm_radiotrophic", "storm_lstm_backbone", "storm_magnetopause",
            "lstm_res", "storm_lstm_no_gate", "storm_lstm_no_delay", "storm_lstm_no_physics",
-           "storm_physfix", "storm_lstm_physfix"]
+           "storm_physfix", "storm_lstm_physfix", "lstm_res_w64", "lstm_res_w256",
+           "storm_physfix_e1", "storm_lstm_physfix_e1"]
 
 
 def make(fam, tmp_path, scaler=None):
@@ -160,3 +161,24 @@ def test_physfix_auxiliary_targets_in_physical_units():
     fn.set_input_scaler(mu, sd, dst_idx=i_dst, kp_idx=i_kp)
     comps = fn(out, tg, torch.zeros(B, 72, len(SW_COLS)))[1]
     assert comps["dst"] == pytest.approx(0.0, abs=1e-8) and comps["kp"] == pytest.approx(0.0, abs=1e-8)
+
+
+def test_physics_ramp_default_and_full_weight_from_first_epoch():
+    from src.training.trainer import physics_scale
+    # default: off during the 5 warm-up epochs, full weight from epoch 15
+    assert [physics_scale(e, 5, 15) for e in (1, 5, 6, 10, 15, 16)] == [0.0, 0.0, 0.1, 0.5, 1.0, 1.0]
+    # "_e1" families: full weight from the first epoch
+    assert physics_scale(1, 0, 1) == 1.0
+
+
+def test_e1_families_configure_ramp_and_physical_units():
+    import copy
+    import numpy as np
+    from storm_pipeline.families import configure
+    cfg = {"model": {}, "loss": {}, "training": {"warmup_epochs": 5}}
+    mu, sd = np.zeros(16, np.float32), np.ones(16, np.float32)
+    c = configure(copy.deepcopy(cfg), "storm_lstm_physfix_e1", scaler=(mu, sd))
+    assert c["training"]["physics_ramp_start"] == 0 and c["training"]["physics_ramp_len"] == 1
+    assert c["loss"]["input_scaler"] is not None and c["model"]["backbone"] == "lstm"
+    c2 = configure(copy.deepcopy(cfg), "storm_lstm_physfix", scaler=(mu, sd))
+    assert "physics_ramp_start" not in c2["training"]

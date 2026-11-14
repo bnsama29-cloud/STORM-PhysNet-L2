@@ -32,6 +32,9 @@ SPEC = {
     "storm_lstm_backbone": dict(model_type="storm_physnet", ablation="none", match=False, model=dict(backbone="lstm")),
     # attribution of the LSTM-encoder variant (second journal campaign)
     "lstm_res": dict(model_type="lstm", ablation="none", match=False),                 # built separately (ResLSTM)
+    # width sensitivity of the residual LSTM (final campaign); built separately
+    "lstm_res_w64": dict(model_type="lstm", ablation="none", match=False),
+    "lstm_res_w256": dict(model_type="lstm", ablation="none", match=False),
     "storm_lstm_no_gate": dict(model_type="storm_physnet", ablation="no_bz_gate", match=False, model=dict(backbone="lstm")),
     "storm_lstm_no_delay": dict(model_type="storm_physnet", ablation="no_delay", match=False, model=dict(backbone="lstm")),
     "storm_lstm_no_physics": dict(model_type="storm_physnet", ablation="no_physics", match=False, model=dict(backbone="lstm")),
@@ -40,6 +43,12 @@ SPEC = {
     "storm_physfix": dict(model_type="storm_physnet", ablation="none", match=False, physical_loss=True),
     "storm_lstm_physfix": dict(model_type="storm_physnet", ablation="none", match=False, physical_loss=True,
                                model=dict(backbone="lstm")),
+    # physics terms in physical units and at full weight from the first epoch (no ramp), so that the weights chosen
+    # by early stopping (usually epochs 2-5) were trained with the constraints active
+    "storm_physfix_e1": dict(model_type="storm_physnet", ablation="none", match=False, physical_loss=True,
+                             training=dict(physics_ramp_start=0, physics_ramp_len=1)),
+    "storm_lstm_physfix_e1": dict(model_type="storm_physnet", ablation="none", match=False, physical_loss=True,
+                                  model=dict(backbone="lstm"), training=dict(physics_ramp_start=0, physics_ramp_len=1)),
     "storm_magnetopause": dict(model_type="storm_physnet", ablation="none", match=False,
                                model=dict(use_magnetopause=True, vsw_idx=SW_COLS.index("vsw"),
                                           density_idx=SW_COLS.index("density"), pdyn_idx=SW_COLS.index("pdyn"))),
@@ -53,6 +62,7 @@ def configure(cfg, family, scaler=None):
     s = SPEC[family]
     cfg["model_type"], cfg["ablation"], cfg["match_storm_capacity"] = s["model_type"], s["ablation"], s["match"]
     cfg["model"].update(s.get("model", {}))
+    cfg["training"].update(s.get("training", {}))
     if s.get("physical_loss") and scaler is not None:   # training needs it; building a model to load weights does not
         mu, sd = scaler
         assert list(SW_COLS[: len(mu)]) == list(SCALED), "scaler columns must be the leading input channels"
@@ -75,6 +85,8 @@ def build(family, trainer, n_sw, device, scaler=None):
         m = trainer.build_model(n_sw); m.prop_delay = FixedTwoPointAverage().to(device); return m
     if family == "lstm_res":
         return ResLSTM(n_sw, n_h=n_h).to(device)
+    if family in ("lstm_res_w64", "lstm_res_w256"):
+        return ResLSTM(n_sw, d_model=int(family.rsplit("_w", 1)[1]), n_h=n_h).to(device)
     if family == "tf_ffn256":
         return FFNResTransformer(n_sw, n_h=n_h, residual=False).to(device)
     m = trainer.build_model(n_sw).to(device)

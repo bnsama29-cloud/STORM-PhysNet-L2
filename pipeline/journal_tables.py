@@ -11,7 +11,9 @@ from pathlib import Path
 
 ORDER = [  # (family, label, group)
     ("persistence", "Persistence", "Reference"),
-    ("lstm", "LSTM", "Baselines"), ("lstm_res", "LSTM, residual", "Baselines"), ("mlp", "MLP", "Baselines"),
+    ("ridge_res", "Ridge regression, residual", "Classical baselines"), ("gbm_res", "Gradient-boosted trees, residual", "Classical baselines"),
+    ("lstm", "LSTM", "Baselines"), ("lstm_res", "LSTM, residual", "Baselines"),
+    ("lstm_res_w64", "\\quad width 64", "Baselines"), ("lstm_res_w256", "\\quad width 256", "Baselines"), ("mlp", "MLP", "Baselines"),
     ("cnn", "CNN", "Baselines"),
     ("transformer", "Transformer (default size)", "Transformer controls"),
     ("transformer_matched", "Transformer, matched", "Transformer controls"),
@@ -24,7 +26,8 @@ ORDER = [  # (family, label, group)
     ("storm_no_delay", "\\quad no delay", "STORM-PhysNet and variants"),
     ("storm_no_gate", "\\quad no gate", "STORM-PhysNet and variants"),
     ("storm_no_physics", "\\quad no physics loss", "STORM-PhysNet and variants"),
-    ("storm_physfix", "\\quad physics loss in physical units", "STORM-PhysNet and variants"),
+    ("storm_physfix", "\\quad physical-unit loss", "STORM-PhysNet and variants"),
+    ("storm_physfix_e1", "\\quad physical-unit loss from epoch 1", "STORM-PhysNet and variants"),
     ("storm_cathode", "\\quad cathode--anode gate", "STORM-PhysNet and variants"),
     ("storm_cathode_spec", "\\quad cathode--anode + spectral head", "STORM-PhysNet and variants"),
     ("storm_radiotrophic", "\\quad radiotrophic gate", "STORM-PhysNet and variants"),
@@ -32,10 +35,12 @@ ORDER = [  # (family, label, group)
     ("storm_lstm_no_gate", "\\quad LSTM encoder, no gate", "STORM-PhysNet and variants"),
     ("storm_lstm_no_delay", "\\quad LSTM encoder, no delay", "STORM-PhysNet and variants"),
     ("storm_lstm_no_physics", "\\quad LSTM encoder, no physics loss", "STORM-PhysNet and variants"),
-    ("storm_lstm_physfix", "\\quad LSTM encoder, physics loss in physical units", "STORM-PhysNet and variants"),
+    ("storm_lstm_physfix", "\\quad LSTM encoder, physical-unit loss", "STORM-PhysNet and variants"),
+    ("storm_lstm_physfix_e1", "\\quad LSTM encoder, physical-unit loss from epoch 1", "STORM-PhysNet and variants"),
     ("storm_magnetopause", "\\quad + magnetopause features", "STORM-PhysNet and variants"),
 ]
 LABEL = {f: l.replace("\\quad ", "STORM-PhysNet, " if f.startswith("storm_") else "Residual TF ") for f, l, _ in ORDER}
+LABEL.update({"lstm_res_w64": "LSTM, residual, width 64", "lstm_res_w256": "LSTM, residual, width 256"})
 
 
 def f3(v): return "--" if v is None or v != v else f"{v:.3f}"
@@ -52,8 +57,14 @@ def rows(N, key_fn, H, groups=True, only=None):
     return out
 
 
+HIDE_PENDING = False
+
+
 def tabular(cols, head, body, caption, label, note="", star=False):
     env = "table*" if star else "table"
+    if HIDE_PENDING:   # drop rows of runs that have not arrived, and the note that explains them
+        body = [r for r in body if "\\pend" not in r]
+        note = note.replace(" \\pend{} marks runs still in progress.", "").replace("\\pend{} marks runs still in progress.", "")
     return "\n".join([f"\\begin{{{env}}}[!t]", "\\centering", f"\\caption{{{caption}}}", f"\\label{{{label}}}", "\\footnotesize",
                       "\\setlength{\\tabcolsep}{4pt}", "\\begin{adjustbox}{max width=\\linewidth}",
                       f"\\begin{{tabular}}{{{cols}}}", "\\toprule", head + " \\\\", "\\midrule", *body, "\\bottomrule", "\\end{tabular}",
@@ -63,7 +74,8 @@ def tabular(cols, head, body, caption, label, note="", star=False):
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--numbers", required=True); ap.add_argument("--out", required=True)
-    a = ap.parse_args(); N = json.load(open(a.numbers)); out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
+    ap.add_argument("--hide-pending", action="store_true", help="omit rows of families without results")
+    a = ap.parse_args(); global HIDE_PENDING; HIDE_PENDING = a.hide_pending; N = json.load(open(a.numbers)); out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
     H = N["horizons"]; hh = " & ".join(f"{h}\\,h" for h in H); cols = "l" + "c" * len(H)
     have = set(N["main"])
 
@@ -73,7 +85,8 @@ def main():
     (out / "tab_main.tex").write_text(tabular(cols, f"Model & {hh}", rows(N, main_v, H),
         "GOES-15 test skill, $\\mathrm{PE}_\\mathrm{clim}$: mean over ten seeds and the three test blocks.", "tab:main",
         "Seed standard deviations are at most 0.011 for the other controls without residual, 0.018 for the residual Transformers, "
-        "0.027 for the STORM-PhysNet variants with a Transformer encoder, 0.005 with the LSTM encoder, and 0.053 for the CNN. "
+        "0.027 for the STORM-PhysNet variants with a Transformer encoder, 0.007 for the models with an LSTM encoder "
+        "and the persistence residual, and 0.053 for the CNN. "
         "\\pend{} marks runs still in progress.", star=True))
 
     def blockA(f):
@@ -100,9 +113,9 @@ def main():
     # attribution of the LSTM-encoder variant (campaigns 2 and 3)
     PL = {}
     for r in N.get("paired_vs_lstm", []): PL.setdefault(r["family"], {})[r["h"]] = r
-    lstm_rows = [("lstm_res", "LSTM with persistence residual only"), ("storm_lstm_no_gate", "no gate"),
+    lstm_rows = [("lstm_res", "Residual LSTM"), ("storm_lstm_no_gate", "no gate"),
                  ("storm_lstm_no_delay", "no delay"), ("storm_lstm_no_physics", "no physics loss"),
-                 ("storm_lstm_physfix", "physics loss in physical units")]
+                 ("storm_lstm_physfix", "physical-unit loss"), ("storm_lstm_physfix_e1", "physical-unit loss, epoch 1")]
     body = [f"{lab} & " + (" & ".join(cell(PL[f][h]) for h in H) if f in PL else " & ".join(["\\pend{}"] * len(H))) + " \\\\"
             for f, lab in lstm_rows]
     (out / "tab_paired_lstm.tex").write_text(tabular(cols, f"LSTM variant minus & {hh}", body,
@@ -137,8 +150,8 @@ def main():
             body.append(f"{lab} & " + " & ".join(["\\pend{}"] * len(pk)) + " \\\\")
     (out / "tab_probes.tex").write_text(tabular("l" + "c" * len(pk), "Model & " + " & ".join(n for _, n in pk), body,
         "Robustness probes: 12\\,h $\\mathrm{PE}_\\mathrm{clim}$ with degraded inputs (seed means over blocks).", "tab:probes",
-        "Noise: Gaussian noise of standard deviation $\\sigma$ (in units of each standardised channel) on every input channel except "
-        "the observed-hour mask. Outage: driver channels held at their last value for the final 24 input hours. No drivers: "
+        "Noise: Gaussian noise of standard deviation $\\sigma$ (in units of each standardised channel) on the 16 continuous "
+        "auxiliary channels; the flux history and the observed-hour mask are unchanged. Outage: driver channels held at their last value for the final 24 input hours. No drivers: "
         "driver channels at their training mean for the whole input. Clean values are in Table~\\ref{tab:main}.", star=True))
 
     # calibration
@@ -152,24 +165,29 @@ def main():
         "Coverage of the predicted $1\\sigma$ / $1.96\\sigma$ intervals (nominal 0.68 / 0.95).", "tab:calib",
         "Fraction of test targets inside $\\hat y\\pm\\hat\\sigma$ and $\\hat y\\pm1.96\\hat\\sigma$, averaged over seeds and blocks.", star=True))
 
-    # transfer
-    names = {"goes16": "GOES-16", "goes18": "GOES-18", "grasp": "GSAT-19 GRASP"}
-    var = [("zeroshot", "zero-shot"), ("heads", "heads"), ("full", "full"), ("scratch", "scratch")]
-    body = []
-    for t in ("goes16", "goes18", "grasp"):
-        if t not in N["transfer"]: continue
-        T = N["transfer"][t]
-        body.append(f"\\multicolumn{{5}}{{l}}{{\\textit{{{names[t]}}} (persistence {T['persistence']['-'][i12]:.3f})}} \\\\")
-        for f, lab, g in ORDER:
-            if f == "persistence": continue
-            if f in T:
-                body.append(f"{lab} & " + " & ".join(f3(T[f][v][i12]) if v in T[f] else "--" for v, _ in var) + " \\\\")
-            elif f not in have:
-                body.append(f"{lab} & " + " & ".join(["\\pend{}"] * len(var)) + " \\\\")
-    (out / "tab_transfer.tex").write_text(tabular("lcccc", "Model & " + " & ".join(n for _, n in var), body,
+    # transfer: one wide table, satellites side by side
+    names = {"goes16": "GOES-16 (75\\textdegree W)", "goes18": "GOES-18 (137\\textdegree W)", "grasp": "GSAT-19 GRASP (48\\textdegree E)"}
+    var = [("zeroshot", "zero"), ("heads", "heads"), ("full", "full"), ("scratch", "scr.")]
+    sats = [t for t in ("goes16", "goes18", "grasp") if t in N["transfer"]]
+    nv = len(var)
+    head = (" & " + " & ".join(f"\\multicolumn{{{nv}}}{{c}}{{{names[t]}}}" for t in sats) + " \\\\\n"
+            + "".join(f"\\cmidrule(lr){{{2 + k * nv}-{1 + (k + 1) * nv}}}" for k in range(len(sats))) + "\n"
+            + "Model & " + " & ".join(" & ".join(n for _, n in var) for _ in sats))
+    body = ["Persistence & " + " & ".join(f"\\multicolumn{{{nv}}}{{c}}{{{N['transfer'][t]['persistence']['-'][i12]:.3f}}}" for t in sats) + " \\\\"]
+    for f, lab, g in ORDER:
+        if f == "persistence": continue
+        if any(f in N["transfer"][t] for t in sats):
+            cells = []
+            for t in sats:
+                T = N["transfer"][t]
+                cells += [f3(T[f][v][i12]) if f in T and v in T[f] else "--" for v, _ in var]
+            body.append(f"{lab} & " + " & ".join(cells) + " \\\\")
+        elif f not in have:
+            body.append(f"{lab} & " + " & ".join(["\\pend{}"] * (nv * len(sats))) + " \\\\")
+    (out / "tab_transfer.tex").write_text(tabular("l" + "c" * (nv * len(sats)), head, body,
         "Cross-satellite transfer from the block-A GOES-15 models: 12\\,h $\\mathrm{PE}_\\mathrm{clim}$, mean over folds and ten seeds.",
-        "tab:transfer", "Heads: encoder frozen, output layers retrained. Full: all weights fine-tuned. Scratch: trained only on the "
-        "target satellite. ``--'': not run (zero-shot only for these families).", star=True))
+        "tab:transfer", "Zero: zero-shot, no retraining. Heads: encoder frozen, output layers retrained. Full: all weights fine-tuned. "
+        "Scr.: trained from scratch on the target satellite only. ``--'': not run (zero-shot only for these models).", star=True))
     print("wrote", sorted(p.name for p in out.glob("*.tex")))
 
 
