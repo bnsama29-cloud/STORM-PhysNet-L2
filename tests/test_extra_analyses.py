@@ -74,3 +74,16 @@ def test_t_ns_accepts_datetime64_and_int64():
     t = np.array(["2018-09-01T00:00", "2018-09-01T01:00"], dtype="datetime64[ns]")
     assert (ea.t_ns({"t_origin": t}) == t.astype(np.int64)).all()
     assert (ea.t_ns({"t_origin": t.astype(np.int64)}) == t.astype(np.int64)).all()
+
+
+def test_lookback_tests_pair_each_window_with_its_72h_model_and_holm_adjust():
+    s = lambda v: {"A": {"per_seed": [[v + 0.01 * k, v] for k in range(4)]}, "B": {"per_seed": [[v + 0.01 * k, v] for k in range(4)]}}
+    LB = {"tf_ffn_res_tp_L24": s(0.9), "tf_ffn_res_tp@L24": s(0.8), "gbm_res@L24": s(0.85), "gbm_res_L24": s(0.86),
+          "ridge_res_L24": s(0.8), "ridge_res@L24": s(0.8), "lstm_res_L168": s(0.7)}
+    T = ea.lookback_tests(LB)
+    fams = {(r["family"], r["ref"]) for r in T}
+    assert fams == {("tf_ffn_res_tp_L24", "tf_ffn_res_tp@L24"), ("tf_ffn_res_tp_L24", "gbm_res@L24"),
+                    ("tf_ffn_res_tp_L24", "gbm_res_L24")}  # no ridge rows; lstm has no 72 h partner
+    d = {(r["family"], r["ref"], r["h_index"]): r for r in T}
+    assert abs(d[("tf_ffn_res_tp_L24", "tf_ffn_res_tp@L24", 0)]["diff"] - 0.1) < 1e-12
+    assert all(r["p_holm"] >= r["p"] for r in T)

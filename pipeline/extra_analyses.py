@@ -12,7 +12,7 @@
 
   python extra_analyses.py --blocks DIR [DIR ...] [--lookback DIR ...] --out extra.json
 """
-import argparse, json
+import argparse, json, re
 from collections import defaultdict
 
 import numpy as np
@@ -149,6 +149,35 @@ def _lookback_group(meta72, P72, dirs, out):
                                                   n=int(len(common)), lookback=L if name == fam else 72)
 
 
+def lookback_tests(LB, against=(("tf_ffn_res_tp_L24", "gbm_res"), ("tf_ffn_res_tp_L24", "gbm_res_L24"))):
+    """Paired t-tests on per-seed scores averaged over blocks, Holm-adjusted over all rows: each lookback family
+    minus its 72 h family on the same origins, then each (family, reference) pair in `against`, where the reference
+    is the 72 h model on that family's origins (or, if it names a window, that model). Seeds are paired in sorted
+    order. Neural families only: ridge is deterministic and the tree ensembles barely vary over seeds, so a t-test
+    on them measures nothing; their window effects are reported as differences."""
+    from scipy import stats
+    from journal_analysis import holm
+
+    def seeds(key):
+        return np.mean([LB[key][b]["per_seed"] for b in sorted(LB[key])], 0)   # seeds x horizons
+
+    pairs = [(k, f"{re.sub(r'_L(\d+)$', '', k)}@L{re.search(r'_L(\d+)$', k).group(1)}")
+             for k in sorted(LB) if "@" not in k and not k.startswith(("ridge", "gbm"))]
+    pairs += [(f, ref if re.search(r"_L\d+$", ref) else f"{ref}@L{re.search(r'_L(\d+)$', f).group(1)}")
+              for f, ref in against if f in LB]
+    rows, ps = [], []
+    for a, b in pairs:
+        if b not in LB:
+            continue
+        x, y = seeds(a), seeds(b)
+        assert x.shape == y.shape, f"{a} vs {b}: seed counts differ"
+        for i in range(x.shape[1]):
+            p = stats.ttest_rel(x[:, i], y[:, i]).pvalue
+            rows.append((a, b, i, float((x[:, i] - y[:, i]).mean()), float(p))); ps.append(p)
+    return [dict(family=a, ref=b, h_index=i, diff=d, p=p, p_holm=float(q))
+            for (a, b, i, d, p), q in zip(rows, holm(ps))]
+
+
 TEX_ROWS = ["persistence", "ridge_res", "gbm_res", "lstm_res", "storm_lstm_backbone", "tf_ffn_res", "tf_ffn_res_tp",
             "storm_bz", "storm_bz_tp"]
 
@@ -213,6 +242,7 @@ def main():
                              for (f, h, g, x), p, q in zip(rows, ps, holm(ps))]
     if a.lookback:
         R["lookback"] = lookback(meta, P, a.lookback)
+        R["lookback_tests"] = lookback_tests(R["lookback"])
     json.dump(R, open(a.out, "w"), indent=1); print("wrote", a.out)
     if a.tex:
         write_tex(R, a.tex); print("wrote", a.tex)
