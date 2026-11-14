@@ -39,13 +39,15 @@ ap.add_argument("--noise_families", default="storm_bz,transformer_matched,tf_ffn
                 help="families that get the noise probe (and the --probes set)")
 ap.add_argument("--probes", action="store_true", help="also run the driver-outage and index-latency probes")
 ap.add_argument("--horizons", default="1,6,12", help="forecast horizons in hours; 1,6,12 reproduces the AGERS 2026 runs")
+ap.add_argument("--lookback", type=int, default=72, help="input window in hours (campaign 7: 24 or 168)")
 ap.add_argument("--stop_after_hours", type=float, default=None,
                 help="start no new run after this many hours (finished runs are kept; run again later to continue)")
 args = ap.parse_args()
 os.environ["STORM_HSTEPS"] = args.horizons          # read by storm_pipeline.data at import time
+os.environ["STORM_SEQ"] = str(args.lookback)
 
 import numpy as np, pandas as pd, torch, yaml
-from storm_pipeline.data import (build_features, Block, make_loaders, load_raw, SW_COLS, HSTEPS, BLOCKS, VAL)
+from storm_pipeline.data import (build_features, Block, make_loaders, load_raw, SW_COLS, HSTEPS, BLOCKS, VAL, SEQ)
 
 REPO = Path(args.repo).resolve()
 OUT = Path(args.out); OUT.mkdir(parents=True, exist_ok=True)
@@ -68,9 +70,11 @@ PROBES = ([("out", 6), ("out", 24), ("out", 72), ("lag", 3)] if args.probes else
 from storm_pipeline.families import SPEC, configure, build as build_family
 for f in FAMILIES:
     assert f in SPEC, f"unknown family {f}"
+    assert SPEC[f].get("lookback", 72) == SEQ, f"{f} needs --lookback {SPEC[f].get('lookback', 72)}"
 
 base_cfg = yaml.safe_load(open(REPO / "configs/config.yaml"))
 if args.epochs: base_cfg["training"]["epochs"] = args.epochs
+base_cfg["data"]["sequence_length"] = SEQ
 H_WEIGHT = {1: 1.0, 6: 0.7, 12: 0.5, 24: 0.4}                      # loss weight per horizon (1/6/12 as in the paper)
 assert all(h in H_WEIGHT for h in HSTEPS), f"no loss weight defined for horizons {HSTEPS}"
 base_cfg["data"]["forecast_horizons"] = [float(h) for h in HSTEPS]
@@ -92,8 +96,8 @@ test_set = blk.split(2)
 meta_path = OUT / f"meta_{args.block}.npz"
 TMPTAG = f"{os.getpid()}"                                          # per-process scratch names (two GPUs may share OUT)
 if not meta_path.exists():
-    y = np.stack([blk.flux_tg[test_set.starts + 72 + h - 1].numpy() for h in HSTEPS], 1)
-    pers = blk.flux_tg[test_set.starts + 71].numpy()
+    y = np.stack([blk.flux_tg[test_set.starts + SEQ + h - 1].numpy() for h in HSTEPS], 1)
+    pers = blk.flux_tg[test_set.starts + SEQ - 1].numpy()
     tmp_meta = OUT / f"meta_{args.block}.{TMPTAG}.tmp.npz"
     np.savez(tmp_meta, y=y, persist=pers, strict=test_set.strict, storm_in=test_set.window_storm_flags > 0,
              dst_target=test_set.dst_target, t_origin=test_set.t_origin.astype("datetime64[ns]").astype(np.int64),
