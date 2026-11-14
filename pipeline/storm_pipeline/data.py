@@ -21,7 +21,8 @@ from pathlib import Path
 import numpy as np, pandas as pd, torch
 from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
 
-SEQ = 72
+SEQ = int(os.environ.get("STORM_SEQ", "72"))   # lookback in hours; 72 everywhere except campaign 7
+assert 24 <= SEQ <= 512, f"bad STORM_SEQ {SEQ}"
 HSTEPS = tuple(int(h) for h in os.environ.get("STORM_HSTEPS", "1,6,12").split(","))
 assert len(HSTEPS) >= 1 and all(h >= 1 for h in HSTEPS) and list(HSTEPS) == sorted(set(HSTEPS)), f"bad STORM_HSTEPS {HSTEPS}"
 SPAN = SEQ + max(HSTEPS)          # rows needed per window (84 for the default horizons)

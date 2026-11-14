@@ -17,9 +17,9 @@ charging, including at longitudes that no GOES satellite monitors. The manuscrip
 forecast network with 28 neural and two classical models at lead times of 1--24\,h, using a leakage-controlled protocol, ten
 seeds on three disjoint test periods and paired significance tests. It then tests transfer from GOES-15 to
 GOES-16, GOES-18 and India's GSAT-19 GRASP. The results show that the physics-inspired components do not change
-accuracy significantly, even with the physics terms at full weight throughout training, that the training schedule changes the ranking of the networks as much as the encoder does, that
-gradient-boosted trees on summaries of the input window are as accurate as the best network on clean inputs and
-more accurate than the rest, while the LSTM networks keep more skill when solar-wind data are missing, and that
+accuracy significantly, even with the physics terms at full weight throughout training, that the training schedule and the input window change the ranking of the networks as much as the encoder does, that
+gradient-boosted trees on summaries of the input window come within about 0.01 of the best network (a Transformer
+trained longer with a 24\,h window) on clean inputs and are more accurate than the rest, while the LSTM networks keep more skill when solar-wind data are missing, and that
 predicting changes rather than flux levels is what survives a calibration and longitude offset. We believe this fits the journal's scope in space weather and the space environment.
 
 \textbf{Prior version.} An earlier, shorter version of this work (\emph{STORM-PhysNet: Multi-Horizon Forecasting

@@ -32,6 +32,11 @@ CAMPAIGN3 = {   # final campaign: campaign 2 (if not yet run) + the physics loss
     2: ("storm_lstm_no_delay,storm_lstm_no_physics", ""),
     3: ("storm_physfix,storm_lstm_physfix", "storm_physfix,storm_lstm_physfix"),
 }
+CAMPAIGN7 = {   # lookback sensitivity: 24 h and 168 h of input history (one lookback per account and process)
+    1: ("lstm_res_L24,tf_ffn_res_tp_L24", ""),
+    2: ("lstm_res_L168", ""),
+    3: ("tf_ffn_res_tp_L168", ""),
+}
 CAMPAIGN6 = {   # training-protocol check: lr 1e-4, 1-epoch warm-up, up to 60 epochs, selection on mean val MSE
     1: ("lstm_res_tp,storm_lstm_backbone_tp", ""),
     2: ("tf_ffn_res_tp", ""),
@@ -71,6 +76,7 @@ NGPU = torch.cuda.device_count(); print("GPUs:", NGPU, [torch.cuda.get_device_na
 assert NGPU >= 1, "No GPU: set Accelerator = GPU T4 x2 in the notebook settings"
 SEED_SPLITS = ["42-46", "47-51"] if NGPU >= 2 else ["42-51"]
 FAMS, TFAMS = "__FAMS__", "__TFAMS__"
+LB = __LB__                 # input window in hours (72 except in the lookback campaign, which skips probes and transfer)
 NFAM = len(FAMS.split(","))
 W = "/kaggle/working"
 
@@ -107,13 +113,14 @@ for b in ("A", "B", "C"):
     if n_preds(b) >= 10 * NFAM: print(f"block {b}: done"); continue
     if budget() <= 0: break
     run_parallel(lambda seeds, b=b: f"python -u train_block.py --repo {REPO} --block {b} --out {W}/j2_{b} --horizons 1,6,12,24 "
-                 f"--families {FAMS} --noise_families {FAMS} --probes --seeds {seeds} --keep_ckpt A "
+                 f"--families {FAMS} --lookback {LB} " + (f"--noise_families {FAMS} --probes " if LB == 72 else "--noise_families none ") +
+                 f"--seeds {seeds} --keep_ckpt A "
                  f"--stop_after_hours {budget():.2f}", f"train_{b}")
     print(f"block {b}: {n_preds(b)} of {10 * NFAM} runs")
 
 # ---- 2. cross-satellite transfer from the block-A checkpoints ----
 def n_tr(tag): return len(glob.glob(f"{W}/tj2/transfer_preds{tag}_s*.npz"))
-if n_preds("A") >= 10 * NFAM:
+if LB == 72 and n_preds("A") >= 10 * NFAM:
     for tag, fams, variants in (("_zs", FAMS, "zeroshot"), ("_ft", TFAMS, "heads,full")):
         if not fams or n_tr(tag) >= 10 or budget() <= 0: continue
         run_parallel(lambda seeds, fams=fams, variants=variants, tag=tag:
@@ -128,7 +135,7 @@ with zipfile.ZipFile(name, "w", zipfile.ZIP_DEFLATED) as zf:
         for f in glob.glob(f"{W}/{d}/*"):
             if os.path.isfile(f) and not f.endswith(".pt") and ".tmp." not in f: zf.write(f, os.path.relpath(f, W))
     for f in glob.glob(f"{W}/*.log"): zf.write(f, "logs/" + os.path.basename(f))
-done = [n_preds(b) >= 10 * NFAM for b in "ABC"] + [n_tr("_zs") >= 10, (not TFAMS) or n_tr("_ft") >= 10]
+done = [n_preds(b) >= 10 * NFAM for b in "ABC"] + ([n_tr("_zs") >= 10, (not TFAMS) or n_tr("_ft") >= 10] if LB == 72 else [])
 print(round(os.path.getsize(name) / 1e6, 1), "MB ->", name, f"| session time {(time.time() - T0) / 3600:.1f} h")
 print(f"runs: A {n_preds('A')}, B {n_preds('B')}, C {n_preds('C')} of {10 * NFAM} each; transfer seeds: zero-shot {n_tr('_zs')}/10, fine-tune {n_tr('_ft')}/10")
 print("ALL WORK DONE: send", name) if all(done) else print("NOT FINISHED: add this notebook's output as an Input and Save & Run All again.")
@@ -180,17 +187,26 @@ print("ALL WORK DONE: send", name) if all(n_preds(b) >= 10 for b in "ABC") else 
 '''
 
 
+def lookback_of(fams):
+    """The one input window of an account's families (72 unless they carry an _L<h> suffix)."""
+    import re
+    lbs = {int(m.group(1)) if (m := re.search(r"_L(\d+)$", f)) else 72 for f in fams.split(",")}
+    assert len(lbs) == 1, f"one lookback per account, got {lbs}"
+    return lbs.pop()
+
+
 def main(commit, campaign=1):
     out = Path(__file__).resolve().parent / "kaggle"; out.mkdir(exist_ok=True)
-    groups = {1: CAMPAIGN1, 2: CAMPAIGN2, 3: CAMPAIGN3, 4: CAMPAIGN4, 5: CAMPAIGN5, 6: CAMPAIGN6}[campaign]
-    hours = {1: {1: 7, 2: 7, 3: 5}, 2: {1: 4, 2: 3}, 3: {1: 4, 2: 3, 3: 7}, 4: {1: 3, 2: 4}, 5: {1: 4}, 6: {1: 10, 2: 10, 3: 10}}[campaign]
+    groups = {1: CAMPAIGN1, 2: CAMPAIGN2, 3: CAMPAIGN3, 4: CAMPAIGN4, 5: CAMPAIGN5, 6: CAMPAIGN6, 7: CAMPAIGN7}[campaign]
+    hours = {1: {1: 7, 2: 7, 3: 5}, 2: {1: 4, 2: 3}, 3: {1: 4, 2: 3, 3: 7}, 4: {1: 3, 2: 4}, 5: {1: 4}, 6: {1: 10, 2: 10, 3: 10}, 7: {1: 7, 2: 6, 3: 10}}[campaign]
     for acc, (fams, tfams) in groups.items():
         stem = f"journal_account{acc}" if campaign == 1 else f"journal{campaign}_account{acc}"
         zipname = f"journal_l2_account{acc}.zip" if campaign == 1 else f"journal_l2_c{campaign}_account{acc}.zip"
         s = ((CLASSICAL_TEMPLATE if tfams == "CLASSICAL" else TEMPLATE).replace("__ACC__", str(acc)).replace("__FAMS__", fams).replace("__TFAMS__", tfams)
              .replace("__COMMIT__", commit).replace("__REPO_URL__", REPO_URL).replace("__HOURS__", str(hours[acc]))
-             .replace("__CAMP__", str(campaign)).replace("__ZIP__", zipname))
-        left = [k for k in ("__ACC__", "__FAMS__", "__TFAMS__", "__COMMIT__", "__REPO_URL__", "__HOURS__", "__CAMP__", "__ZIP__") if k in s]
+             .replace("__CAMP__", str(campaign)).replace("__ZIP__", zipname)
+             .replace("__LB__", str(lookback_of(fams))))
+        left = [k for k in ("__ACC__", "__FAMS__", "__TFAMS__", "__COMMIT__", "__REPO_URL__", "__HOURS__", "__CAMP__", "__ZIP__", "__LB__") if k in s]
         assert not left, f"unfilled placeholders {left}"
         p = out / f"{stem}.py"; p.write_text(s); print("wrote", p)
 

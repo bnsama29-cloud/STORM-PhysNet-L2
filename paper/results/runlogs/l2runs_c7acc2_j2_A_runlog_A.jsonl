@@ -1,0 +1,10 @@
+{"block": "A", "family": "lstm_res_L168", "seed": 47, "epochs": 14, "best_val_mse": 0.1688, "seconds": 196.1, "n_params": 267140}
+{"block": "A", "family": "lstm_res_L168", "seed": 42, "epochs": 15, "best_val_mse": 0.1676, "seconds": 210.5, "n_params": 267140}
+{"block": "A", "family": "lstm_res_L168", "seed": 48, "epochs": 14, "best_val_mse": 0.1699, "seconds": 178.6, "n_params": 267140}
+{"block": "A", "family": "lstm_res_L168", "seed": 43, "epochs": 14, "best_val_mse": 0.1686, "seconds": 177.0, "n_params": 267140}
+{"block": "A", "family": "lstm_res_L168", "seed": 49, "epochs": 15, "best_val_mse": 0.1697, "seconds": 190.1, "n_params": 267140}
+{"block": "A", "family": "lstm_res_L168", "seed": 44, "epochs": 14, "best_val_mse": 0.1712, "seconds": 177.4, "n_params": 267140}
+{"block": "A", "family": "lstm_res_L168", "seed": 45, "epochs": 16, "best_val_mse": 0.1698, "seconds": 205.5, "n_params": 267140}
+{"block": "A", "family": "lstm_res_L168", "seed": 50, "epochs": 16, "best_val_mse": 0.1711, "seconds": 205.8, "n_params": 267140}
+{"block": "A", "family": "lstm_res_L168", "seed": 51, "epochs": 16, "best_val_mse": 0.1689, "seconds": 206.6, "n_params": 267140}
+{"block": "A", "family": "lstm_res_L168", "seed": 46, "epochs": 16, "best_val_mse": 0.1674, "seconds": 207.0, "n_params": 267140}

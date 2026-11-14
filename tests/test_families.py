@@ -18,7 +18,8 @@ JOURNAL = ["transformer", "tf_ffn256", "mlp", "cnn", "storm_no_physics", "storm_
            "lstm_res", "storm_lstm_no_gate", "storm_lstm_no_delay", "storm_lstm_no_physics",
            "storm_physfix", "storm_lstm_physfix", "lstm_res_w64", "lstm_res_w256",
            "storm_physfix_e1", "storm_lstm_physfix_e1",
-           "lstm_res_tp", "storm_lstm_backbone_tp", "tf_ffn_res_tp", "storm_bz_tp"]
+           "lstm_res_tp", "storm_lstm_backbone_tp", "tf_ffn_res_tp", "storm_bz_tp",
+           "lstm_res_L24", "lstm_res_L168", "tf_ffn_res_tp_L24", "tf_ffn_res_tp_L168"]
 
 
 def make(fam, tmp_path, scaler=None):
@@ -220,3 +221,33 @@ def test_protocol_families_build_same_architecture_as_base():
         m = build(base, Trainer(configure(copy.deepcopy(cfg0), base)), 16, "cpu")
         assert type(m_tp) is type(m)
         assert sum(p.numel() for p in m_tp.parameters()) == sum(p.numel() for p in m.parameters())
+
+
+def test_lookback_families_carry_window_and_base_settings():
+    from storm_pipeline.families import SPEC, base_family
+    for base in ("lstm_res", "tf_ffn_res_tp"):
+        for L in (24, 168):
+            s = SPEC[f"{base}_L{L}"]
+            assert s["lookback"] == L
+            assert {k: v for k, v in s.items() if k != "lookback"} == SPEC[base]
+    assert base_family("tf_ffn_res_tp_L168") == "tf_ffn_res" and base_family("lstm_res_L24") == "lstm_res"
+    assert base_family("storm_bz_tp") == "storm_bz" and base_family("lstm_res_w64") == "lstm_res_w64"
+    assert "lookback" not in SPEC["lstm_res"]
+
+
+@pytest.mark.parametrize("L", [24, 168])
+def test_lookback_families_run_on_their_window_length(L, tmp_path):
+    for fam in (f"lstm_res_L{L}", f"tf_ffn_res_tp_L{L}"):
+        m = make(fam, tmp_path).eval()
+        x = torch.randn(2, L, len(SW_COLS)); f = torch.randn(2, L, 1)
+        with torch.no_grad():
+            out = m(x, f)
+        assert out["flux_pred"].shape == (2, len(HSTEPS)) and torch.isfinite(out["flux_pred"]).all()
+
+
+def test_kaggle_lookback_of_accounts():
+    from make_journal_kaggle import lookback_of, CAMPAIGN7
+    assert lookback_of("lstm_res,tf_ffn_res") == 72
+    assert [lookback_of(f) for f, _ in CAMPAIGN7.values()] == [24, 168, 168]
+    with pytest.raises(AssertionError):
+        lookback_of("lstm_res_L24,lstm_res_L168")

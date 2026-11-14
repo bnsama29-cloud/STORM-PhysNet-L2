@@ -79,22 +79,21 @@ a physics-informed loss, with 28 neural and two classical models. All forecast 1
 GOES-15 data (2011--2020), with ten seeds on three disjoint test periods, leakage-free splits and
 paired \(t\)-tests. Predicting the change from persistence gives the 1\,h skill;
 solar-wind inputs give the 6--24\,h skill. The delay, the gate, two alternative gates, a spectral head,
-magnetopause features and the physics loss change no score significantly, even when the physics terms act at
-full weight throughout. With a
+magnetopause features and the physics loss change no score significantly, even at full weight. With a
 long short-term memory (LSTM) encoder, STORM-PhysNet reaches prediction efficiencies of 0.975, 0.852, 0.790 and
 0.725, matched within 0.007 by a plain residual LSTM. Gradient-boosted trees on
-window summaries are more accurate (0.978, 0.864, 0.813 and 0.743). A longer training schedule, tested post hoc,
-raises STORM-PhysNet by 0.045 at 6--12\,h, past its LSTM variant, and lets a residual Transformer match the
-trees there. The trees have the lowest storm-time error and are the most robust to noise; the LSTM models keep
-more skill without solar-wind data. Level-forecasting models lose their skill on GOES-16, whose flux
-reads half that of GOES-15; change-forecasting models keep part of it. Local fine-tuning brings all networks to similar skill on GOES-16, GOES-18 and India's GSAT-19.
+window summaries are more accurate (0.978, 0.864, 0.813 and 0.743). Longer training, tested post hoc,
+raises STORM-PhysNet by 0.045 at 6--12\,h, past its LSTM variant; with it and a 24\,h window, which
+validation also prefers, a residual Transformer beats the trees at 6--24\,h by 0.005--0.012. The trees have the lowest storm-time error and are the most robust to noise; the LSTM models keep
+more skill without solar-wind data. Level-forecasting models fail on GOES-16, whose flux
+reads half that of GOES-15; change-forecasting models keep part of it. Local fine-tuning equalises the networks on GOES-16, GOES-18 and India's GSAT-19.
 \end{abstract}
 
 \begin{highlights}
 \item Over twenty forecast models compared on three test periods with ten seeds each.
 \item Persistence residual explains 1\,h skill; solar-wind drivers explain 6--24\,h skill.
 \item Physics-inspired delay and gates do not change accuracy significantly.
-\item With longer training, a residual Transformer matches boosted trees at 6--12\,h.
+\item Longer training and a 24\,h window let a Transformer beat boosted trees at 6--24\,h.
 \item Forecasting changes, not levels, survives a factor-of-two satellite offset.
 \end{highlights}
 
@@ -112,8 +111,10 @@ Machine learning \sep Transfer learning
 Electrons with energies above 2\,MeV in the outer radiation belt penetrate spacecraft shielding and
 accumulate in insulating materials. When the flux stays high for a day or more, the stored charge can
 discharge inside electronics, and anomalies of geostationary (GEO) satellites cluster after such
-enhancements \citep{pilipenko2006,baker2018}. The flux can rise by orders of magnitude within a day after a geomagnetic
-disturbance, through wave--particle acceleration in the inner magnetosphere \citep{horne2005}. Operators
+enhancements \citep{wu2000,pilipenko2006,baker2018}; this internal charging is a separate hazard from the surface
+charging caused by electrons of keV energies \citep{minow2024}. The flux can rise by orders of magnitude within a day
+after a geomagnetic disturbance, nearly simultaneously over a wide range of L-shells \citep{kanekal2000}, through
+wave--particle acceleration in the inner magnetosphere \citep{horne2005}. Operators
 therefore need forecasts hours ahead. NOAA issues an alert when the \(>2\)\,MeV flux measured by its GOES
 satellites exceeds 1000\,pfu (particles cm\(^{-2}\)\,s\(^{-1}\)\,sr\(^{-1}\)), but GOES satellites sit over the
 Americas, and many GEO satellites, including India's INSAT and GSAT series, operate at longitudes where the flux
@@ -155,14 +156,16 @@ a split that interleaves months of the same year. \citet{forsyth2020} framed GOE
 exceedance of flux thresholds and found persistence hard to beat at the lower threshold. \citet{tan2024}
 found a Transformer only slightly, and not significantly, better than an attention-based LSTM, and
 \citet{sun2024,sun2025} compared LSTM and Transformer models at lead times of 1--24\,h and improved daily
-fluence prediction with pre-training. In this journal, \citet{rodgers2003} predicted outer-belt relativistic
+fluence prediction with pre-training. Earlier in this journal, \citet{vassiliadis2000} forecast a geosynchronous
+electron flux index with nonlinear autoregressive moving-average models, \citet{wu2000} predicted anomalies of two
+GEO satellites a day ahead with neural networks driven by \(K_p\), Dst or the \(>2\)\,MeV flux, and \citet{rodgers2003} predicted outer-belt relativistic
 electron flux with radial-basis-function networks driven by solar-wind, geomagnetic and sunspot inputs, compared
 them with persistence and divided the input vectors between training and test sets at random;
 \citet{kryakunova2023} found strong day-to-day inertia in the \(>2\)\,MeV fluence over 35 years of GOES data and
 computed its correlations with the solar-wind speed and the Ap index at several delays; \citet{kalegaev2023}
 improved an operational neural-network forecast of daily GEO fluence up to four days ahead by adding solar-wind
-speeds forecast from solar extreme-ultraviolet images; \citet{wangj2023} predicted GEO electron fluxes above 0.8 and 2\,MeV with neural
-networks driven by solar-wind parameters, \citet{geletaw2023} evaluated the daily SNB3GEO model for 2013--2016 and found a prediction
+speeds forecast from solar extreme-ultraviolet images; \citet{wangj2023} predicted daily GEO electron fluxes above 0.8 and 2\,MeV with neural
+networks driven only by solar-wind parameters (prediction efficiency about 0.8 on 2019--2020), \citet{geletaw2023} evaluated the daily SNB3GEO model for 2013--2016 and found a prediction
 efficiency of 0.79 against GOES-13 but 0.45 against LANL, a first indication of how strongly skill depends on the
 instrument, \citet{geletaw2024} ranked the AE index and solar-wind speed as the dominant drivers of the daily
 \(>2\)\,MeV flux over 29 years of LANL data, with peak correlations at lags of days, and \citet{azragorskaya2026} forecast daily GEO fluence
@@ -178,7 +181,7 @@ of results that do not reproduce \citep{kapoor2023}; and ordinary cross-validati
 the errors are uncorrelated \citep{bergmeir2018}. For probabilistic forecasts, proper scoring rules such as the
 continuous ranked probability score (CRPS) assess calibration and sharpness together \citep{gneiting2007}.
 Across satellites, \citet{zhao2025} and \citet{wangb2026} intercalibrated FY-4A and GOES-15 records with neural
-networks and showed that the fused record improves forecasts, and
+networks and showed that the fused record improves forecasts and nowcasts, and
 \citet{rodriguez2025} assessed the consistency of GOES-8 to GOES-15 electron fluxes. We know of no study that
 compares zero-shot use, fine-tuning and training from scratch on new GEO sensors.
 
@@ -340,6 +343,15 @@ where \(\Phi\) and \(\varphi\) are the standard normal distribution and density 
 error. For an ensemble of \(M\) members \(\hat y^{(1)},\dots,\hat y^{(M)}\) we use the empirical form
 \(\mathrm{CRPS}=\frac1M\sum_j|\hat y^{(j)}-y|-\frac1{2M^2}\sum_{j,k}|\hat y^{(j)}-\hat y^{(k)}|\).
 
+Four further breakdowns use the same forecasts (Section~\ref{sec:breakdown}): PE per test block, that is, per phase
+of the solar cycle; PE of daily means, averaging the observations and the forecasts over the target hours of each UT
+day with at least 20 targets, for comparison with daily-resolution studies; RMSE by the local time of the target,
+which at 135\(^\circ\)W is UT minus 9\,h, in 3-hour bins; and RMSE on rapid changes, the targets at least 0.5 in
+\(\log_{10}\) (a factor of three) above (rises) or below (falls) the flux at the forecast origin, together with the
+mean fraction \((\hat y_i-y^{\mathrm p}_i)/(y_i-y^{\mathrm p}_i)\) of each change that the forecast reproduces. These
+breakdowns were defined after the main results and are descriptive; only the RMSE on rises is tested, against the
+gradient-boosted trees (paired over seeds, Holm-adjusted over the networks and lead times).
+
 \subsection{Statistics}
 \label{sec:stats}
 Every model is trained with ten random seeds (42--51) in every block, so that differences between models can be
@@ -356,10 +368,11 @@ Holm method: the \(m\) values are sorted, \(p_{(1)}\le\dots\le p_{(m)}\), the \(
 \(\max_{j\le k}\min\{1,(m-j+1)p_{(j)}\}\), and a difference is called significant if the adjusted value is below
 0.05. This controls the chance of any false positive across the table. The scores, the test and the 0.05 level were
 fixed in the conference study; the attribution of the LSTM variant (Section~\ref{sec:attribution}), the width check
-of the residual LSTM, the physical-unit physics loss (with both schedules), the classical baselines and training protocol B were added
-after the first journal results and are reported as such. Their comparisons with one another (the trees against six
-networks; each protocol-B model against its original version; STORM-PhysNet against the two other protocol-B
-networks) are Holm-adjusted as separate families.
+of the residual LSTM, the physical-unit physics loss (with both schedules), the classical baselines, training protocol B and the other input windows were
+added after the first journal results and are reported as such. Their comparisons with one another (the trees
+against six networks; each protocol-B model against its original version; STORM-PhysNet against the two other
+protocol-B networks; each network with another window against its 72\,h version and the 24\,h Transformer against
+the trees) are Holm-adjusted as separate families.
 
 \subsection{Robustness tests}
 The test inputs are degraded in ways that mimic operational failures: Gaussian noise with standard deviation
@@ -457,8 +470,9 @@ time: attention compares all hours at once and has no built-in notion of order b
 LSTM processes hours in sequence and must carry information forward in \(\mathbf c_k\), which favours recent
 hours.
 
-\paragraph{\(B_z\) gate} A southward IMF lets solar-wind energy enter the magnetosphere and usually precedes
-electron enhancements. From the standardised inputs before the delay stage, the gate forms three numbers, the
+\paragraph{\(B_z\) gate} A southward IMF lets solar-wind energy enter the magnetosphere. Large enhancements at
+GEO follow storms whose recovery phase has a southward IMF \citep{obara2000}, and only some storms raise the
+\(>2\)\,MeV flux at all \citep{degtyarev2009}. From the standardised inputs before the delay stage, the gate forms three numbers, the
 mean and the maximum over the window of the southward part \(B_s=\max(0,-B_z)\) and the latest southward duration
 \(D_t\), and computes
 \begin{equation}
@@ -635,8 +649,8 @@ keeping the flux history, its spread and the mask.
 hours and a linear head.
 \end{itemize}
 The LSTM, MLP, CNN and the non-residual Transformers predict the flux level directly. The 29 neural families
-and the four retrained with protocol B make 990 training runs, which took about 76 GPU-hours of training on NVIDIA
-T4 GPUs.
+and the four retrained with protocol B make 990 training runs; retraining two of them with other input windows
+(Section~\ref{sec:breakdown}) adds 120, for 1110 runs and about 84 GPU-hours of training on NVIDIA T4 GPUs.
 
 \subsection{Classical baselines}
 \label{sec:classical}
@@ -691,13 +705,15 @@ variant (\(+0.003\), \(+0.012\), \(+0.023\) and \(+0.018\), paired \(p<10^{-5}\)
 0.001, so this ranking does not depend on the seed. Only the residual Transformer trained with protocol B
 (Section~\ref{sec:protB}) matches them at 6 and 12\,h (0.865 and 0.811; trees minus Transformer \(-0.001\) and
 \(+0.002\), Holm-adjusted \(p=0.56\) over the 24 comparisons of the trees with six networks); at 1 and 24\,h the
-trees remain significantly better (\(+0.002\) and \(+0.018\)). The ridge regression scores 0.976, 0.848, 0.794 and 0.745, the highest of all models at 24\,h and within
+trees remain significantly better (\(+0.002\) and \(+0.018\)); with a 24\,h input window the same Transformer
+overtakes them at 6--24\,h (Section~\ref{sec:breakdown}). The ridge regression scores 0.976, 0.848, 0.794 and 0.745, the highest of all models at 24\,h and within
 0.008 of the best network trained with the original protocol at 6 and 12\,h. The
 chronological block A gives the same ranking (Table~\ref{tab:blockA}), and Fig.~\ref{fig:scatter} shows that
 the 12\,h forecasts follow the observations over four orders of magnitude.
 
 Persistence scores higher at 24\,h (0.546) than at 12\,h (0.249). The flux seen at a fixed position on GEO
-follows a daily cycle in local time, so the value 24\,h earlier, taken at the same local time, is a better
+follows a daily cycle in local time \citep{wangb2026}, which can be strongly asymmetric during large storms
+\citep{friedel2000}, so the value 24\,h earlier, taken at the same local time, is a better
 guess than the value 12\,h earlier, taken on the opposite side of the orbit. A 24\,h forecast must therefore
 beat a stronger reference than a 12\,h forecast, and the strong models do so by 0.17--0.20.
 
@@ -862,6 +878,52 @@ plotted at the time they are valid for (ten-seed means). Gaps are hours without 
 \label{fig:case2015}
 \end{figure*}
 
+\subsection{Solar cycle, daily means, local time and rapid changes}
+\label{sec:breakdown}
+\input{tables/tab_extra.tex}
+Table~\ref{tab:extra} breaks the skill down further. Across the phases of solar cycle 24 the ranking of the
+models changes little, but at 24\,h every network scores 0.03--0.04 lower in block B (2015--2016, the declining
+phase) than in block C (2012--2013), whereas the ridge regression and the trees score the same in both. Persistence
+itself is much better at 12\,h near the maximum (0.40, against 0.16--0.20). \citet{azragorskaya2026} likewise found
+daily forecasts to degrade in the early declining phase, when high-speed solar-wind streams were under-represented
+in their training data.
+
+Averaged over each UT day, the 24\,h forecasts reach PE 0.79--0.83 (trees 0.834, residual Transformer 0.827,
+ridge regression 0.826; persistence 0.683). This is close to the PE of about 0.8 that \citet{wangj2023} report for
+daily fluxes on 2019--2020, though their inputs, lead time and test period differ from ours.
+
+The error of persistence depends strongly on the local time of the target: at 12\,h its RMSE ranges from 0.50 to
+0.87 across the 3-hour bins, because the flux at the origin was measured on the other side of the orbit. The models
+remove most of this dependence (trees 0.34--0.38, residual LSTM 0.35--0.42, residual Transformer with protocol B
+0.34--0.38), and almost every model errs most for targets between 18 and 24\,LT.
+
+The rapid changes separate the networks from the classical models. On rises, which include the onsets of the
+enhancements that charge spacecraft, the networks reproduce 76--83\% of the rise at 6\,h (STORM-PhysNet 68\%) and
+64--74\% at 24\,h, against 67\% and 51\% for the trees, and all networks except STORM-PhysNet have a lower RMSE on
+rises than the trees at 6\,h (for the residual LSTM 0.34 against 0.39, and at 24\,h 0.53 against 0.59; Holm-adjusted
+\(p<10^{-4}\)). On falls the order reverses: the trees have the lowest RMSE at 6\,h (0.41, against 0.43--0.52 for
+the networks) and the ridge regression at 24\,h (0.73, against 0.77--0.83). The lower overall error of the
+classical models thus comes from decays and quiet periods, while the networks follow enhancements more closely;
+the trees still have the best alert HSS (Section~\ref{sec:storm}), which rewards getting the level right on both
+sides of the threshold.
+
+All models above see 72\,h of history. To test this choice, the two classical models and two networks, the
+residual LSTM and the residual Transformer with protocol B, were retrained with 24\,h and 168\,h windows (for the
+classical models, the same summary features computed over the shorter or longer window). Each window length has
+its own forecast origins, so every model is compared with its 72\,h version on the origins that both share, with
+paired tests over the seeds, Holm-adjusted as a separate family. The classical models are insensitive to the
+window: the trees change by at most 0.005 and the ridge regression by at most 0.007 at any lead time. The networks
+are not. The 24\,h window lifts the residual Transformer by 0.006, 0.014 and 0.024 at 6, 12 and 24\,h
+(Holm-adjusted \(p\le0.02\)), to 0.872, 0.825 and 0.749, whereas the 168\,h window costs it 0.002, 0.009 and 0.011 at
+1, 6 and 12\,h (\(p\le0.03\)); for the residual LSTM the 168\,h window helps by 0.011 at 12\,h (\(p=0.013\)), and no other
+change is significant. The validation error orders the windows the same way in all three blocks (lowest at 24\,h
+for the Transformer and at 168\,h for the LSTM), so choosing the window on validation data would give the same
+models. With the 24\,h window the residual Transformer is more accurate than the trees at 6--24\,h, by 0.008, 0.012
+and 0.007 against the trees with the 72\,h window and by 0.005, 0.011 and 0.010 against trees given the same 24\,h
+window (Holm-adjusted \(p<0.01\)), and 0.002 less accurate at 1\,h. The margin varies between blocks, from
+\(-0.003\) (block B, 24\,h) to 0.022 (block B, 12\,h). Its storm-time error, robustness and transfer were not
+tested.
+
 \subsection{Robustness to degraded inputs}
 \label{sec:robust}
 Noise separates the models more than clean data do (Table~\ref{tab:probes}, Fig.~\ref{fig:noise}). The noise
@@ -1004,16 +1066,21 @@ without observations. Dotted line: 1000\,pfu alert level.}
 %% =====================================================================================================
 \subsection{Which model should an operator use?}
 On clean GOES-15 data, gradient-boosted trees on summary features of the window are the most accurate single
-model at 1 and 12\,h and the ridge regression at 24\,h; a residual Transformer trained with protocol B matches the
-trees at 6--12\,h, and among the networks trained with the original protocol the residual Transformer, the
+model at 1 and 12\,h and the ridge regression at 24\,h among the models with a 72\,h window; a residual Transformer
+trained with protocol B matches the trees at 6--12\,h and, given a 24\,h window, beats them at 6--24\,h by
+0.005--0.012, and among the networks trained with the original protocol the residual Transformer, the
 Transformers without a residual and the LSTM models with the persistence residual perform about equally well at
-6--24\,h. How a network is trained thus matters as much as its architecture. The choice therefore depends on the inputs an operator expects and on the output needed. With real-time drivers that
-are clean or noisy but present, or at a new GOES longitude without local training data, the gradient-boosted trees
-are the strongest option; they need no GPU, and they are the reference any new network must beat. When solar-wind
+6--24\,h. How a network is trained, and how much history it sees, thus matters as much as its architecture. The
+choice therefore depends on the inputs an operator expects and on the output needed. The 24\,h Transformer is the
+most accurate on clean inputs, but its storm-time error, robustness and transfer are untested. With real-time
+drivers that are clean or noisy but present, or at a new GOES longitude without local training data, the
+gradient-boosted trees remain the safest option; they need no GPU, and they are the reference any new network must beat. When solar-wind
 data may be missing for a day or longer, or when a calibrated uncertainty is needed, the residual LSTM or the LSTM
 variant of STORM-PhysNet is the better choice: they keep the most skill without drivers, their predicted
 uncertainty is close to calibrated, and they train reproducibly (seed standard deviation 0.001--0.005); the residual
-LSTM matches the full LSTM variant within 0.007 at every lead time with fewer components. Averaging ten network seeds
+LSTM matches the full LSTM variant within 0.007 at every lead time with fewer components. The networks also follow
+rapid rises of the flux more closely than the trees (Section~\ref{sec:breakdown}), which matters when the onset of
+an enhancement, rather than the average error, drives the decision. Averaging ten network seeds
 reaches the accuracy of the trees at 6--24\,h, at ten times the training cost. Where no driver data exist, as for
 GRASP, the residual Transformer transferred best, with either protocol. If a new satellite has a year or more of data, fine-tuning any of
 the strong networks gives similar skill, and the choice of architecture matters little. Fig.~\ref{fig:scorecard}
@@ -1072,7 +1139,10 @@ natural fit: its forget gate (Eq.~\ref{eq:lstm}) gives a learned exponential mem
 days after each enhancement. Protocol B shows, however, that the gap came mostly from training. The LSTM models reach
 their best validation error within a few epochs under either protocol, whereas the Transformer models need a smaller
 learning rate, a shorter warm-up and more epochs; given those, STORM-PhysNet with its Transformer encoder overtakes its
-LSTM variant at 6--12\,h, and the residual Transformer matches the gradient-boosted trees. The LSTM's lasting
+LSTM variant at 6--12\,h, and the residual Transformer matches the gradient-boosted trees. The input window
+separates the encoders too: the Transformer gains from a shorter window and the LSTM from a longer one
+(Section~\ref{sec:breakdown}), both by validation and on test, so one window for all networks also favours some of
+them. The LSTM's lasting
 advantages are that it trains reproducibly with little tuning, keeps the most skill when drivers are missing and
 transfers best of the networks to GOES-16, perhaps because a smooth memory of recent changes depends less on the
 absolute flux level than attention patterns learned on GOES-15. A comparison of architectures under one training
@@ -1080,11 +1150,11 @@ recipe can therefore mislead, and the cost of training belongs in the comparison
 \citet{ferreira2026} likewise compared Transformers with classical models and found a tabular foundation model
 competitive at a much lower training cost.
 
-That linear and tree models on window summaries are as accurate or more accurate on clean inputs, and transfer
-better, suggests that a few summaries of the recent flux and driver history carry most of the forecastable
-information, and that the advantages of the networks here lie in robustness to missing drivers and in uncertainty
-estimates rather than in accuracy. \citet{azragorskaya2026} found an LSTM more stable than tree ensembles for daily
-fluence; for hourly forecasts with a persistence residual, the trees were both stable (seed standard deviation below
+That tree and linear models on window summaries come within 0.012 and 0.031 of the best network on clean inputs,
+are insensitive to the window length, and transfer better, suggests that a few summaries of the recent flux and driver
+history carry most of the forecastable information, and that the advantages of the networks here lie in rapid
+rises, robustness to missing drivers and uncertainty estimates more than in average accuracy. \citet{azragorskaya2026} found that an LSTM generalised more stably than tree ensembles for
+daily fluence, with a smaller gap between training and test skill; for hourly forecasts with a persistence residual, the trees were both stable (seed standard deviation below
 0.001) and among the most accurate. Their use of the inputs (Fig.~\ref{fig:importance}) matches the regime change
 that \citet{azragorskaya2026} describe on longer time scales: the recent flux carries most of the information up to
 12\,h ahead, and the solar-wind and geomagnetic drivers take over at 24\,h, in line with the dominant role of
@@ -1107,9 +1177,10 @@ study is an offline evaluation, not an operational trial. (7) Under the original
 (Section~\ref{sec:whyphys}); only two later campaigns train with the constraints active throughout, and the weights
 \(\lambda\) were not tuned. (8) Hyperparameters were not tuned for each architecture: one protocol was used for all
 networks, and only four were retrained with a second (Section~\ref{sec:tp}), which changed the ranking of the
-encoders. Other models may gain from longer training too. (9) The classical baselines and protocol B were added after
-the main neural results had been analysed, and the classical baselines were not fine-tuned on the target
-satellites; these comparisons are post hoc.
+encoders. Other models may gain from longer training too. Likewise, the input window was varied for only two
+networks, and the 24\,h Transformer was not tested for storm time, robustness or transfer. (9) The classical
+baselines, protocol B and the other windows were added after the main neural results had been analysed, and the
+classical baselines were not fine-tuned on the target satellites; these comparisons are post hoc.
 
 %% =====================================================================================================
 \section{Conclusions}
@@ -1125,11 +1196,13 @@ protocol an LSTM encoder lifts STORM-PhysNet by 0.04 at 6--12\,h and a plain LST
 persistence matches the full model within 0.007, but a longer schedule with selection on all lead times lifts
 STORM-PhysNet with its Transformer encoder by 0.045 and past its LSTM variant. The LSTM-encoder models remain the
 most robust networks to noisy inputs and the most robust of all models to missing solar-wind data.
-Gradient-boosted trees on summaries of the same window are the most accurate model on clean inputs at 1 and 12\,h,
-matched at 6--12\,h only by a residual Transformer trained with the longer schedule; they have the lowest storm-time
-error, are the most robust to input noise and, together with a ridge regression, transfer best to GOES-16 and
-GOES-18. The case for neural networks here rests on robustness to missing solar-wind data and on uncertainty
-estimates, not on accuracy. Models that forecast the flux level directly fail on a satellite whose flux differs by a
+Gradient-boosted trees on summaries of the same 72\,h window are the most accurate model on clean inputs at 1 and
+12\,h, matched at 6--12\,h only by a residual Transformer trained with the longer schedule, which with a 24\,h window
+beats them at 6--24\,h by 0.005--0.012; the trees are insensitive to the window, have the lowest storm-time error,
+are the most robust to input noise and, together with a ridge regression, transfer best to GOES-16 and GOES-18.
+The networks do follow rapid rises of the flux more closely than the trees, which lag on enhancements and lead on
+decays. The case for neural networks here rests on these rises, on robustness to missing solar-wind data, on
+uncertainty estimates and, with the right training and window, on a small gain in average accuracy. Models that forecast the flux level directly fail on a satellite whose flux differs by a
 factor of two, while models that forecast changes keep part of their skill, and fine-tuning on local data
 brings all strong models to similar skill on GOES-16, GOES-18 and GSAT-19.
 

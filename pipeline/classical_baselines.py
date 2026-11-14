@@ -21,6 +21,7 @@ if __name__ == "__main__":
     def _arg(flag, default):
         return sys.argv[sys.argv.index(flag) + 1] if flag in sys.argv else default
     os.environ["STORM_HSTEPS"] = _arg("--horizons", "1,6,12,24")    # read by storm_pipeline.data at import time
+    os.environ["STORM_SEQ"] = _arg("--lookback", "72")
     sys.path.insert(0, str(Path(_arg("--repo", ".")).resolve()))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -147,9 +148,12 @@ def main():
     ap.add_argument("--n_estimators", type=int, default=3000, help="upper limit; early stopping picks the number")
     ap.add_argument("--max_train_windows", type=int, default=None, help="smoke test only")
     ap.add_argument("--stop_after_hours", type=float, default=None)
+    ap.add_argument("--lookback", type=int, default=72, help="input window in hours; family names get the suffix _L<h>")
     args = ap.parse_args()
     a, b = map(int, args.seeds.split("-")); SEEDS = list(range(a, b + 1))
     fams = args.families.split(","); assert set(fams) <= set(MODELS), fams
+    assert args.lookback == SEQ, "--lookback must be given before the module is imported (it sets STORM_SEQ)"
+    if SEQ != 72: fams = [f"{f}_L{SEQ}" for f in fams]
     out = Path(args.out); out.mkdir(parents=True, exist_ok=True)
     goes, omni = load_raw(args.repo); blk = Block(build_features(goes, omni), args.block)
     Xtr, Ftr, ytr, ptr, wtr = windows(blk, 0); Xva, Fva, yva, pva, _ = windows(blk, 1); Xte, Fte, yte, pte, wte = windows(blk, 2)
@@ -173,7 +177,7 @@ def main():
                 log("time budget reached"); return
             t0 = time.time(); preds = {k: np.zeros((len(yte), len(HSTEPS)), np.float32) for k in test_feats}; info = []; saved = []
             for i, h in enumerate(HSTEPS):
-                m = (GBM(args.n_estimators) if fam == "gbm_res" else Ridge()).fit(Ftr_, ytr[:, i] - ptr, Fva_, yva[:, i] - pva, wt, seed)
+                m = (GBM(args.n_estimators) if fam.startswith("gbm_res") else Ridge()).fit(Ftr_, ytr[:, i] - ptr, Fva_, yva[:, i] - pva, wt, seed)
                 for k, Fx in test_feats.items(): preds[k][:, i] = pte + m.predict(Fx)
                 info.append(getattr(m, "alpha", None) or getattr(getattr(m, "m", None), "best_iteration_", None)); saved.append(export(m))
             if args.block == "A":     # block-A models are reused for zero-shot transfer (transfer_journal.py)

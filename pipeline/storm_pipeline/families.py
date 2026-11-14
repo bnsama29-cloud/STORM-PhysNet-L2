@@ -62,6 +62,20 @@ PROTOCOL = dict(learning_rate=1e-4, warmup_epochs=1, epochs=60, select_on="mean"
 for _base in ("lstm_res", "storm_lstm_backbone", "tf_ffn_res", "storm_bz"):
     SPEC[_base + "_tp"] = dict(SPEC[_base], training={**SPEC[_base].get("training", {}), **PROTOCOL})
 
+# Lookback sensitivity (campaign 7): the residual LSTM and the protocol-B residual Transformer with 24 h and 168 h of
+# input history instead of 72 h. train_block.py must be started with the matching --lookback.
+for _base in ("lstm_res", "tf_ffn_res_tp"):
+    for _L in (24, 168):
+        SPEC[f"{_base}_L{_L}"] = dict(SPEC[_base], lookback=_L)
+
+
+def base_family(family):
+    """The family whose architecture a variant uses: strips the _L<h> lookback and _tp protocol suffixes."""
+    import re
+    family = re.sub(r"_L\d+$", "", family)
+    return family[:-3] if family.endswith("_tp") else family
+
+
 def configure(cfg, family, scaler=None):
     """Apply a family's settings to a deep copy of the base config (in place) and return it.
     scaler: (mu, sd) of the block; train_block.py always passes it, so the "physfix" families train their physics
@@ -79,10 +93,9 @@ def configure(cfg, family, scaler=None):
 
 
 def build(family, trainer, n_sw, device, scaler=None):
-    if family.endswith("_tp"):   # protocol-check families build exactly like their base family
-        family = family[:-3]
     """trainer: a src.training.trainer.Trainer made from configure(cfg, family). scaler: (mu, sd) of the block,
     needed by storm_magnetopause for new models (a loaded checkpoint carries its own)."""
+    family = base_family(family)   # protocol-B and lookback variants build exactly like their base family
     n_h = len(HSTEPS)
     if family == "tf_ffn_res":
         return FFNResTransformer(n_sw, n_h=n_h).to(device)
