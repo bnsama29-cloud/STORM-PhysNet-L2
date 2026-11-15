@@ -7,3 +7,4 @@ matplotlib
 scikit-learn
 scipy
 tensorboard
+lightgbm>=4.0

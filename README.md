@@ -26,7 +26,9 @@ a residual LSTM at three widths and standard baselines) and two classical baseli
 gradient-boosted trees on window summaries; `pipeline/classical_baselines.py`). Four networks are also retrained
 with a second training protocol (learning rate 1e-4, one warm-up epoch, up to 60 epochs, selection on the mean
 validation error over all lead times): 33 neural families and 990 training runs. Two networks and both classical
-models are also retrained with 24 h and 168 h input windows (120 more network runs, 1110 in all). See
+models are also retrained with 24 h and 168 h input windows, and STORM-PhysNet (protocol B) with a 24 h window;
+the 24 h networks are then scored on every test, including the degraded-input probes and transfer (180 more
+network runs, 1170 in all). See
 `pipeline/README.md`.
 
 ## Evaluation protocol
@@ -48,7 +50,7 @@ models are also retrained with 24 h and 168 h input windows (120 more network ru
 - `configs/` — training configuration
 - `results/` — every number behind the paper's tables and figures (`numbers.json`, `extra.json`) and the run logs
 - `tests/` — unit and integration tests (`python -m pytest -q tests`)
-- `legacy/` — results, checkpoints and notebook of the earlier single-split experiments (superseded; kept for reference)
+- `legacy/` — results, checkpoints, figures and notebook of the earlier single-split experiments (superseded; kept for reference)
 
 ## Reproduce
 
@@ -57,9 +59,44 @@ pip install -r requirements.txt
 python -m pytest -q tests
 ```
 
-Full training runs on Kaggle with the scripts in `pipeline/kaggle/` (campaigns 1–7; campaign 5 trains the
-physics terms at full weight from the first epoch, campaign 6 uses training protocol B, campaign 7 other input windows); see `pipeline/README.md`.
-Tables and figures: `pipeline/journal_analysis.py`, `journal_tables.py`, `journal_figures.py`.
+Full training runs on Kaggle with the scripts in `pipeline/kaggle/` (campaigns 1–8; campaign 5 trains the
+physics terms at full weight from the first epoch, campaign 6 uses training protocol B, campaign 7 other input
+windows, campaign 8 scores the 24 h-window networks on every test); see `pipeline/README.md`. Each Kaggle script
+pins the commit it runs, and rerunning a family with the same seeds reproduces its test forecasts exactly (checked for
+the 24 h residual Transformer, run in campaigns 7 and 8).
+
+From the saved predictions (available on request, see `results/README.md`), the analysis runs in this order:
+
+```bash
+cd pipeline
+python journal_analysis.py --blocks <72 h block dirs> --transfer <transfer dirs> --out <report>      # numbers.json
+python journal_tables.py --numbers <report>/numbers.json --out <tables>
+python gbm_importance.py --models <block-A tree dir> --out <report>/gbm_importance.json
+python extra_analyses.py --blocks <72 h block dirs> --lookback <24 h and 168 h dirs> \
+    --transfer72 <transfer dirs> --transfer24 <24 h transfer dirs> --numbers <report>/numbers.json \
+    --out <report>/extra.json --tex <tables>/tab_extra.tex --tex24 <tables>/tab_window24.tex
+python journal_figures.py --repo .. --numbers <report>/numbers.json --extra <report>/extra.json \
+    --importance <report>/gbm_importance.json --blocks <72 h block dirs> --transfer <transfer dirs> --out <figures>
+```
+
+## Where each result of the paper comes from
+
+| Paper item | Script | Key in `results/` |
+|---|---|---|
+| Main skill table, chronological block-A table | `journal_tables.py` | `numbers.json`: `main`, `persistence` |
+| Paired tests (STORM-PhysNet, LSTM variant, protocol B, trees) | `journal_analysis.py` | `numbers.json`: `paired_*` |
+| Storm-time RMSE and alert HSS | `journal_analysis.py` | `numbers.json`: `storm_rmse`, `alert_hss`, `n_storm_targets` |
+| Degraded inputs (noise, outages, no drivers, late indices) | `journal_analysis.py` | `numbers.json`: `probes` |
+| Calibration and seed ensembles | `journal_analysis.py` | `numbers.json`: `calibration`, `ensemble` |
+| Transfer to GOES-16, GOES-18 and GRASP | `journal_analysis.py` | `numbers.json`: `transfer` |
+| Skill by solar-cycle phase, daily means, local time, rises and falls | `extra_analyses.py` | `extra.json`: `by_block`, `daily`, `local_time`, `rises`, `falls` |
+| Other input windows (24 h, 168 h) | `extra_analyses.py` | `extra.json`: `lookback`, `lookback_tests` |
+| 24 h-window networks on every test | `extra_analyses.py` | `extra.json`: `window24`, `window24_transfer` |
+| What the trees use | `gbm_importance.py` | `gbm_importance.json` |
+| Training epochs, validation error, run time of every run | `train_block.py` | `runlogs/` |
+
+All tests are paired over the ten seeds (42–51) after averaging each seed over the three test blocks, and each
+family of comparisons is Holm-adjusted.
 
 ## License and data
 
