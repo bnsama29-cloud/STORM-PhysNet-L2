@@ -87,3 +87,58 @@ def test_lookback_tests_pair_each_window_with_its_72h_model_and_holm_adjust():
     d = {(r["family"], r["ref"], r["h_index"]): r for r in T}
     assert abs(d[("tf_ffn_res_tp_L24", "tf_ffn_res_tp@L24", 0)]["diff"] - 0.1) < 1e-12
     assert all(r["p_holm"] >= r["p"] for r in T)
+
+
+def _w24_dirs(tmp_path, n=120, shift=10, seeds=range(42, 52)):
+    """72 h windows on origins [shift, n), 24 h windows on [0, n): the 24 h model is perfect, its 72 h version noisy."""
+    rng = np.random.default_rng(2)
+    t = np.arange(n, dtype=np.int64) * NS; y = rng.normal(3, 1, size=(n, 2)); H = np.array([1, 24])
+    dst = np.where(np.arange(n)[:, None] % 5 == 0, -80.0, 0.0) * np.ones((1, 2))
+    meta72 = {"A": dict(y=y[shift:], persist=y[shift:, 0], t_origin=t[shift:], horizons=H, dst_target=dst[shift:])}
+    P72 = {"A": {"tf_ffn_res_tp": {s: {"pred": y[shift:] + rng.normal(0, 0.3, (n - shift, 2))} for s in seeds},
+                 "gbm_res": {s: {"pred": y[shift:] + 0.2} for s in seeds}}}
+    for k in P72["A"]:
+        for s in seeds:
+            P72["A"][k][s] = _Npz(P72["A"][k][s])
+    d = tmp_path / "L24"; d.mkdir()
+    np.savez(d / "meta_A.npz", y=y, persist=y[:, 0], t_origin=t, horizons=H, dst_target=dst)
+    for s in seeds:
+        np.savez(d / f"preds_A_tf_ffn_res_tp_L24_s{s}.npz", pred=y, pred_noise1=y + 0.1, logvar=np.zeros_like(y))
+    return meta72, P72, d
+
+
+class _Npz(dict):
+    @property
+    def files(self):
+        return list(self)
+
+
+def test_window24_scores_on_common_origins_and_tests_pairs(tmp_path):
+    meta72, P72, d = _w24_dirs(tmp_path)
+    R = ea.window24(meta72, P72, [str(d)])
+    assert R["n"]["A"] == 110                                    # only the origins both window sets contain
+    m = R["mean"]["tf_ffn_res_tp_L24"]
+    assert np.allclose(m["pe"], 1.0) and np.allclose(m["storm_rmse"], 0.0) and np.allclose(m["hss"], 1.0)
+    assert all(v < 1 for v in m["noise1"]) and np.allclose(m["cov68"], 1.0)   # |error| 0 <= sigma 1
+    assert all(v < 1 for v in R["mean"]["tf_ffn_res_tp"]["pe"])
+    pairs = {(r["family"], r["ref"], r["metric"]) for r in R["tests"]}
+    assert ("tf_ffn_res_tp_L24", "gbm_res", "pe") in pairs and ("tf_ffn_res_tp_L24", "tf_ffn_res_tp", "storm_rmse") in pairs
+    assert ("tf_ffn_res_tp_L24", "gbm_res", "noise1") not in pairs                # the reference has no probe
+    assert all(r["p_holm"] >= r["p"] for r in R["tests"])
+    assert all(r["diff"] < 0 for r in R["tests"] if r["metric"] == "storm_rmse")  # perfect model: lower error
+    assert np.allclose(R["ensemble"]["tf_ffn_res_tp_L24"]["crps"], 0.0) and np.allclose(R["ensemble"]["tf_ffn_res_tp_L24"]["pe"], 1.0)
+
+
+def test_window24_transfer_pairs_on_common_target_origins(tmp_path):
+    rng = np.random.default_rng(3); n = 60; t = np.arange(n, dtype=np.int64) * NS; y = rng.normal(size=(n, 2))
+    d24 = tmp_path / "t24"; d72 = tmp_path / "t72"; d24.mkdir(); d72.mkdir()
+    np.savez(d24 / "transfer_meta_zs.npz", grasp_G1_y=y, grasp_G1_persist=y[:, 0], grasp_G1_t=t, horizons=np.array([1, 24]))
+    np.savez(d72 / "transfer_meta_zs.npz", grasp_G1_y=y[5:], grasp_G1_persist=y[5:, 0], grasp_G1_t=t[5:], horizons=np.array([1, 24]))
+    for s in range(42, 52):
+        np.savez(d24 / f"transfer_preds_zs_s{s}.npz", grasp_G1_tf_ffn_res_tp_L24_zeroshot=y)
+        np.savez(d72 / f"transfer_preds_zs_s{s}.npz", grasp_G1_tf_ffn_res_tp_zeroshot=y[5:] + rng.normal(0, .5, (n - 5, 2)))
+    R = ea.window24_transfer([str(d72)], [str(d24)])
+    assert np.allclose(R["scores"]["grasp"]["tf_ffn_res_tp_L24_zeroshot"], 1.0)
+    c = R["common"]["grasp"]["tf_ffn_res_tp_L24_zeroshot|tf_ffn_res_tp_zeroshot"]
+    assert np.allclose(c["model"], 1.0) and all(v < 1 for v in c["ref"])
+    assert len(R["tests"]) == 2 and all(r["diff"] > 0 for r in R["tests"])

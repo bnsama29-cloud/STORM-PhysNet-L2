@@ -70,3 +70,13 @@ def test_load_blocks_rejects_mismatched_test_windows(tmp_path):
     (tmp_path / "c").mkdir(); np.savez(tmp_path / "c" / "meta_A.npz", y=np.array([[1.0, 2.0]]))
     meta, _ = load_blocks([tmp_path / "a", tmp_path / "c"])
     assert meta["A"]["y"].tolist() == [[1.0, 2.0]]
+
+
+def test_scorecard_row24_reads_the_24h_model_from_extra_json():
+    import journal_figures as jf
+    m = {k: [0.1, 0.2, 0.3, 0.4] for k in ("pe", "noise2", "out72", "storm_rmse", "hss")}
+    zs = {"model": [0.5, 0.6, 0.7, 0.8]}
+    X = {"window24": {"mean": {"tf_ffn_res_tp_L24": m}, "ensemble": {"tf_ffn_res_tp_L24": {"crps": [1, 2, 3, 4]}}},
+         "window24_transfer": {"common": {t: {"tf_ffn_res_tp_L24_zeroshot|tf_ffn_res_tp_zeroshot": zs} for t in ("goes16", "grasp")}}}
+    assert jf.scorecard_row24(X, h=12) == [0.3, 0.3, 0.3, 0.3, 0.3, 3, 0.7, 0.7]
+    assert jf.scorecard_row24({}, h=12) is None

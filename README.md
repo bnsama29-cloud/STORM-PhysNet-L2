@@ -26,7 +26,9 @@ a residual LSTM at three widths and standard baselines) and two classical baseli
 gradient-boosted trees on window summaries; `pipeline/classical_baselines.py`). Four networks are also retrained
 with a second training protocol (learning rate 1e-4, one warm-up epoch, up to 60 epochs, selection on the mean
 validation error over all lead times): 33 neural families and 990 training runs. Two networks and both classical
-models are also retrained with 24 h and 168 h input windows (120 more network runs, 1110 in all). See
+models are also retrained with 24 h and 168 h input windows, and STORM-PhysNet (protocol B) with a 24 h window;
+the 24 h networks are then scored on every test, including the degraded-input probes and transfer (180 more
+network runs, 1170 in all). See
 `pipeline/README.md`.
 
 ## Evaluation protocol

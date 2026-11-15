@@ -248,6 +248,19 @@ SCORE_LABEL = {"gbm_res": "Gradient-boosted trees", "ridge_res": "Ridge regressi
                "tf_ffn_res_tp": "Residual Transformer (prot. B)", "storm_bz_tp": "STORM-PhysNet (prot. B)"}
 
 
+SCORE_LABEL["tf_ffn_res_tp_L24"] = "Residual Transformer (prot. B, 24 h)"
+
+
+def scorecard_row24(X, h=12, fam="tf_ffn_res_tp_L24"):
+    """Scorecard row of a 24 h-window model from extra.json (scored on the 72 h test origins), or None."""
+    W = X.get("window24", {}); T = X.get("window24_transfer", {}).get("common", {})
+    if fam not in W.get("mean", {}):
+        return None
+    i = [1, 6, 12, 24].index(h); m = W["mean"][fam]; zs = f"{fam}_zeroshot|{fam.replace('_L24', '')}_zeroshot"
+    return [m["pe"][i], m["noise2"][i], m["out72"][i], m["storm_rmse"][i], m["hss"][i], W["ensemble"][fam]["crps"][i],
+            T["goes16"][zs]["model"][i], T["grasp"][zs]["model"][i]]
+
+
 def scorecard_table(N, h=12):
     """Rows = models, columns = criteria at lead time h; returns (columns, higher_is_better, values)."""
     i = N["horizons"].index(h); T = N["transfer"]
@@ -264,9 +277,13 @@ def scorecard_table(N, h=12):
     return cols, np.array(V)
 
 
-def fig_scorecard(N, out, h=12):
+def fig_scorecard(N, out, h=12, X=None):
     models = [f for f in SCORE_MODELS if f in N["main"]]
     cols, V = scorecard_table(N, h)
+    extra = scorecard_row24(X, h) if X else None
+    if extra is not None:                       # insert after the 72 h residual Transformer with protocol B
+        k = models.index("tf_ffn_res_tp") + 1
+        models.insert(k, "tf_ffn_res_tp_L24"); V = np.insert(V, k, extra, axis=0)
     # colour = rank within each column (1 = best), so every criterion is on the same scale
     R = np.zeros_like(V)
     for j, (_, hib) in enumerate(cols):
@@ -350,11 +367,14 @@ def fig_coverage_and_overlap(repo, out):
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--repo", required=True); ap.add_argument("--numbers", required=True)
     ap.add_argument("--blocks", nargs="+", required=True); ap.add_argument("--transfer", nargs="*", default=[])
-    ap.add_argument("--out", required=True); ap.add_argument("--importance", default=None); a = ap.parse_args()
+    ap.add_argument("--out", required=True); ap.add_argument("--importance", default=None)
+    ap.add_argument("--extra", default=None, help="extra.json of extra_analyses.py (adds the 24 h Transformer to the scorecard)")
+    a = ap.parse_args()
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True); N = json.load(open(a.numbers))
     meta, P = load_blocks(a.blocks)
     fig_horizon(N, out); fig_noise(N, out); fig_transfer(N, out); fig_attribution(N, out, P, meta)
-    if all(f in N["main"] for f in SCORE_MODELS): fig_scorecard(N, out)
+    X = json.load(open(a.extra)) if a.extra and os.path.exists(a.extra) else None
+    if all(f in N["main"] for f in SCORE_MODELS): fig_scorecard(N, out, X=X)
     if a.importance: fig_gbm_importance(json.load(open(a.importance)), out)
     fig_attribution(N, out, P, meta, ref="storm_lstm_backbone", name="fig_attribution_lstm.png", prefix="LSTM enc., ",
                     fams=["lstm_res", "storm_lstm_no_gate", "storm_lstm_no_delay", "storm_lstm_no_physics", "storm_lstm_physfix",
