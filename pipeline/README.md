@@ -16,7 +16,7 @@ from the saved predictions. The same leakage-controlled pipeline produced the AG
 | `transfer_journal.py` | Block-A GOES-15 models → GOES-16, GOES-18 and GSAT-19 GRASP: zero-shot, heads-only, full fine-tuning and from-scratch, chronological folds |
 | `goesr_download.py` | Builds `datasets/goesr/` (NOAA MPS-HI >2 MeV, telescope 4, hourly) and the 2021–2026 OMNI file |
 | `extra_analyses.py` | Skill per test block (solar-cycle phase), on daily means, by local time, on rapid rises and falls, and of other input windows; full scoring (storm time, alerts, probes, calibration, transfer) of the 24 h-window networks |
-| `make_journal_kaggle.py` | Writes the Kaggle scripts of journal campaigns 1–7 into `kaggle/` |
+| `make_journal_kaggle.py` | Writes the Kaggle scripts of journal campaigns 1–8 into `kaggle/` |
 | `classical_baselines.py` | Ridge regression and gradient-boosted trees (LightGBM) on 75 window-summary features |
 | `gbm_importance.py` | Grouped split-gain importance of the block-A gradient-boosted trees |
 | `journal_analysis.py`, `journal_tables.py`, `journal_figures.py` | Scores, paired tests, tables and figures of the paper |
