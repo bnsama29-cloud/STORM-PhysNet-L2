@@ -6,10 +6,9 @@ license: MIT
 repository-code: "https://github.com/bnsama29-cloud/STORM-PhysNet-L2"
 authors:
   - name: "Samarth B N"
-  - name: "Samrudh S Malali"
-  - name: "Dhyan M"
-  - name: "Sanjana H V"
+    orcid: "https://orcid.org/0009-0008-3702-2664"
   - name: "Pratibha Kantanavar"
+    orcid: "https://orcid.org/0000-0002-7637-6675"
 preferred-citation:
   type: conference-paper
   title: "STORM-PhysNet: Multi-Horizon Forecasting of Relativistic Electron Hazards to Geostationary Satellites with Transfer to GSAT-19"
